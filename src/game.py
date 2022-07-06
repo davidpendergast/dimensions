@@ -35,7 +35,7 @@ class Game:
                     inputs.mouse_button_down(e.button)
 
             screen = pygame.display.get_surface()
-            screen.fill("black")
+            screen.fill("purple")
 
             # TODO game
 
