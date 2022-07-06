@@ -2,6 +2,9 @@ import pygame
 import asyncio
 
 import src.inputs as inputs
+import src.level as level
+import src.sprites as sprites
+import src.colors as colors
 
 
 class Game:
@@ -19,6 +22,21 @@ class Game:
         dt = 0
         running = True
 
+        sprites.load()
+
+        state = level.State(0, 0)
+        state.add_entity((4, 4), level.Entity(sprites.EntityID.PLAYER, 1))
+        state.add_entity((5, 2), level.Entity(sprites.EntityID.WALL, 0))
+        state.add_entity((5, 3), level.Entity(sprites.EntityID.WALL, 0))
+        state.add_entity((5, 4), level.Entity(sprites.EntityID.WALL, 0))
+        state.add_entity((6, 4), level.Entity(sprites.EntityID.WALL, 0))
+        state.add_entity((7, 4), level.Entity(sprites.EntityID.WALL, 0))
+        state.add_entity((6, 5), level.Entity(sprites.EntityID.H_WALKER, colors.GREEN_ID, (-1, 0)))
+        state.add_entity((2, 5), level.Entity(sprites.EntityID.BOX, colors.BROWN_ID))
+        state.add_entity((3, 6), level.Entity(sprites.EntityID.BOX, colors.BROWN_ID))
+        state.add_entity((5, 7), level.Entity(sprites.EntityID.BOX, colors.BROWN_ID))
+        state.add_entity((8, 5), level.Entity(sprites.EntityID.POTION, colors.PINK_ID))
+
         while running:
             inputs.new_frame(pygame.time.get_ticks() / 1000.0)
             for e in pygame.event.get():
@@ -35,7 +53,9 @@ class Game:
                     inputs.mouse_button_down(e.button)
 
             screen = pygame.display.get_surface()
-            screen.fill("purple")
+            screen.fill("black")
+
+            state.render_level(screen, (0, 0), cellsize=48)
 
             # TODO game
 

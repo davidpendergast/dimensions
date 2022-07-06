@@ -8,3 +8,4 @@ output.spec
 dest/*
 dist/*
 build/*
+*.mp4

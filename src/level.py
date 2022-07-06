@@ -1,7 +1,10 @@
 import typing
 import pygame
+import src.sprites as sprites
+import src.inputs as inputs
 
 _UID_COUNTER = 1
+
 
 def next_uid() -> int:
     global _UID_COUNTER
@@ -9,26 +12,36 @@ def next_uid() -> int:
     return _UID_COUNTER - 1
 
 
-class EntityID:
-    PLAYER = "p"
-    H_WALKER = "h"
-    V_WALKER = "v"
-    WALL = "W"
-    POTION = "c"
-    BOX = "b"
-    GOAL = "g"
+def get_anim_idx():
+    anim_speed = 4
+    return int(inputs.get_time() * anim_speed)
 
 
 class Entity:
 
-    def __init__(self, ent_id: str, color_id: int, direction=(0, 1), uid=None):
+    def __init__(self, ent_id: str, color_id: int, direction=(0, 1), art_direction=(1, 1), uid=None):
         self.uid = uid or next_uid()
         self.ent_id = ent_id
         self.color_id = color_id
-        self.direction = direction
+
+        self.direction = (0, 1)
+        self.art_direction = art_direction
+        self.set_direction(direction)
+
+    def set_direction(self, xy):
+        art_dir = list(self.art_direction)
+        if xy[0] != 0:
+            art_dir[0] = xy[0]
+        if xy[1] != 0:
+            art_dir[1] = xy[1]
+        self.art_direction = tuple(art_dir)
+        self.direction = xy
 
     def copy(self) -> 'Entity':
         raise NotImplementedError()
+
+    def get_sprite(self, size=16):
+        return sprites.get_sprite(self.ent_id, size, self.color_id, self.art_direction, get_anim_idx())
 
 
 class State:
@@ -69,5 +82,13 @@ class State:
         # 12. To beat the level, destroy all enemies.
 
         return self
+
+    def render_level(self, surf: pygame.Surface, pos, cellsize=32):
+        for xy in self.level:
+            for ent in self.level[xy]:
+                ent_sprite = ent.get_sprite(cellsize)
+                ent_xy = (pos[0] + cellsize * xy[0],
+                          pos[1] + cellsize * xy[1])
+                surf.blit(ent_sprite, ent_xy)
 
 
