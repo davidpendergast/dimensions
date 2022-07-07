@@ -19,6 +19,21 @@ class EntityID:
     BOX = "b"
     GOAL = "g"
 
+    @staticmethod
+    def all_enemies():
+        return (EntityID.H_WALKER, EntityID.V_WALKER, EntityID.NO_WALKER)
+
+    @staticmethod
+    def all_crushables():
+        return EntityID.all_enemies() + (EntityID.POTION, EntityID.SNEK)
+
+    @staticmethod
+    def all_pushables():
+        return (EntityID.BOX,) + EntityID.all_crushables()
+
+    @staticmethod
+    def all_solids():
+        return (EntityID.WALL, EntityID.BOX)
 
 def load():
     global SHEET, BASE_SPRITES

@@ -14,4 +14,4 @@ ALL_MOVE_KEYS = MOVE_LEFT + MOVE_RIGHT + MOVE_UP + MOVE_DOWN + SKIP
 
 UNDO = (pygame.K_z,)
 RESET = (pygame.K_r,)
-PAUSE = (pygame.K_ESCAPE)
+PAUSE = (pygame.K_ESCAPE,)

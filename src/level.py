@@ -1,5 +1,6 @@
 import pygame
 import typing
+from functools import total_ordering
 
 import src.sprites as sprites
 import src.inputs as inputs
@@ -19,7 +20,7 @@ def get_anim_idx():
     anim_speed = 4
     return int(inputs.get_time() * anim_speed)
 
-
+@total_ordering
 class Entity:
 
     def __init__(self, ent_id: str, color_id: int, direction=(0, 1), art_direction=(1, 1), uid=None):
@@ -30,6 +31,9 @@ class Entity:
         self.direction = direction
         self.art_direction = art_direction
         self.set_direction(direction)
+
+    def __lt__(self, other):
+        return self.color_id < other.color_id
 
     def __eq__(self, other):
         return self.uid == other.uid
@@ -207,7 +211,6 @@ class State:
                 yield e
 
     def all_entities_with_type(self, ent_ids):
-        # TODO not great
         if isinstance(ent_ids, str):
             ent_ids = (ent_ids,)
         for xy in self.level:
@@ -215,14 +218,22 @@ class State:
                 if e.ent_id in ent_ids:
                     yield e, xy
 
+    def all_coords_with_type(self, ent_ids):
+        if isinstance(ent_ids, str):
+            ent_ids = (ent_ids,)
+        for xy in self.level:
+            for e in self.all_entities_at(xy):
+                if e.ent_id in ent_ids:
+                    yield xy
+
     def is_empty(self, xy):
         for _ in self.all_entities_at(xy):
             return True
         return False
 
-    def is_solid(self, xy):
+    def is_solid(self, xy, for_color_id=None):
         for e in self.all_entities_at(xy):
-            if e.is_solid():
+            if e.is_solid() and (for_color_id is None or e.color_id != for_color_id):
                 return True
         return False
 
@@ -240,7 +251,7 @@ class State:
                     self.move_entity(start_xy, dest_xy, e)
             return True
         elif not self.is_pushable(start_xy):
-            return False # something solid that can't be pushed
+            return False  # something solid that can't be pushed
         else:
             # there's something solid, but pushable there
             can_push = self.try_to_push_recursively(dest_xy, direction)
@@ -252,14 +263,14 @@ class State:
                         self.move_entity(start_xy, dest_xy, e)
                 return True
 
-    def try_to_move_player(self, player_dir):
+    def _try_to_move_player(self, player_dir):
         success = False
-        for (p, xy) in list(self.all_entities_with_type(sprites.EntityID.PLAYER)):
-            if player_dir == (0, 0):
-                success = True  # skipping turn, EZ
-            else:
+        if player_dir == (0, 0):
+            success = True
+        else:
+            for (p, xy) in list(self.all_entities_with_type(sprites.EntityID.PLAYER)):
                 dest_xy = utils.add(player_dir, xy)
-                if not self.is_solid(dest_xy):
+                if not self.is_solid(dest_xy, for_color_id=p.color_id):
                     self.move_entity(xy, dest_xy, p)
                     success = True
                 else:
@@ -267,7 +278,71 @@ class State:
                     if self.try_to_push_recursively(dest_xy, player_dir):
                         self.move_entity(xy, dest_xy, p)
                         success = True
+        if success:
+            for p, _ in self.all_entities_with_type(sprites.EntityID.PLAYER):
+                p.set_direction(player_dir)
         return success
+
+    def _remove_crushed_things(self):
+        crushed = []
+        for e, xy in self.all_entities_with_type(sprites.EntityID.all_crushables()):
+            for e2 in self.all_entities_at(xy):
+                if e2 != e and e2.is_solid() and e2.color_id != e.color_id:
+                    crushed.append((e, xy))
+                    break
+        for e_xy in crushed:
+            self.remove_entity(e_xy[1], e_xy[0])
+
+    def _handle_direct_collisions(self, enemies_have_moved):
+        types_we_care_about = (sprites.EntityID.PLAYER, sprites.EntityID.POTION) + sprites.EntityID.all_enemies()
+        for xy in list(self.all_coords_with_type(types_we_care_about)):
+            enemies = [e for e in self.all_entities_at(xy) if isinstance(e, Enemy)]
+            players = [e for e in self.all_entities_at(xy) if isinstance(e, Player)]
+            potions = [e for e in self.all_entities_at(xy) if isinstance(e, Potion)]
+
+            enemies.sort()
+            players.sort()
+            potions.sort()
+
+            used_potion = False
+            for e in players + enemies:
+                orig_color = e.color_id
+                any_pot_had_orig_color = False
+                for pot in potions:
+                    if e.color_id != pot.color_id:
+                        e.color_id = pot.color_id
+                        used_potion = True
+                    if pot.color_id == orig_color:
+                        any_pot_had_orig_color = True
+                if e.color_id != orig_color and any_pot_had_orig_color:
+                    e.color_id = orig_color  # trust me, this is logical
+
+            # if any potion got used, remove all potions (again, logical)
+            if used_potion:
+                for pot in potions:
+                    self.remove_entity(xy, pot)
+
+            # handle collisions with enemies
+            for p in players:
+                for e in enemies:
+                    if p.color_id != e.color_id:
+                        if enemies_have_moved or utils.add(p.direction, e.direction) == (0, 0):
+                            self.remove_entity(xy, p)
+
+    def _turn_enemies(self):
+        for e, xy in list(self.all_entities_with_type(sprites.EntityID.all_enemies())):
+            e_dir = e.direction
+            dest_xy = utils.add(xy, e_dir)
+            if self.is_solid(dest_xy, for_color_id=e.color_id):
+                e_dir = utils.sub((0, 0), e_dir)
+                e.set_direction(e_dir)
+
+    def _move_enemies(self):
+        for e, xy in list(self.all_entities_with_type(sprites.EntityID.all_enemies())):
+            e_dir = e.direction
+            dest_xy = utils.add(xy, e_dir)
+            if not self.is_solid(dest_xy, for_color_id=e.color_id):
+                self.move_entity(xy, dest_xy, e)
 
     def get_next(self, player_dir) -> 'State':
         res = self.copy()
@@ -287,8 +362,19 @@ class State:
         # 11. Enemies disappear when player becomes their color(?).
         # 12. To beat the level, destroy all enemies.
 
-        if not res.try_to_move_player(player_dir):
+        # move player
+        if not res._try_to_move_player(player_dir):
             return self  # can't move that way
+
+        # check for things player just crushed
+        res._remove_crushed_things()
+
+        # handle collisions between enemies, players, and potions
+        res._turn_enemies()
+        res._handle_direct_collisions(False)
+
+        res._move_enemies()
+        res._handle_direct_collisions(True)
 
         return res
 
