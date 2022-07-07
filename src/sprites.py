@@ -12,6 +12,7 @@ class EntityID:
     PLAYER = "p"
     H_WALKER = "h"
     V_WALKER = "v"
+    NO_WALKER = "n"
     SNEK = "s"
     WALL = "W"
     POTION = "c"
@@ -33,9 +34,10 @@ def load():
 
     BASE_SPRITES[EntityID.PLAYER] = imgs((0, 16), 0)
     BASE_SPRITES[EntityID.H_WALKER] = imgs((0, 16), 16)
-    BASE_SPRITES[EntityID.V_WALKER] = imgs((0, 16, 24, 32), 24)
+    BASE_SPRITES[EntityID.V_WALKER] = imgs((0, 16, 32, 48), 32)
+    BASE_SPRITES[EntityID.NO_WALKER] = imgs((16, 32), 48)
     BASE_SPRITES[EntityID.WALL] = imgs(32, 0)
-    BASE_SPRITES[EntityID.SNEK] = imgs((24, 32), 16)
+    BASE_SPRITES[EntityID.SNEK] = imgs((16, 32), 16)
     BASE_SPRITES[EntityID.POTION] = imgs(0, 48)
     BASE_SPRITES[EntityID.BOX] = imgs(48, 0)
 
@@ -60,8 +62,8 @@ def _recolor_fast(surf: pygame.Surface, end_color):
 def _get_sprite(key, nocache=False):
     if key not in _CACHE:
         ent_id, size, color_id, direction, anim_idx = key
-
         base_sprites = BASE_SPRITES[ent_id]
+
         if len(base_sprites) == 4:
             base_sprites = base_sprites[0:2] if direction[1] >= 0 else base_sprites[2:4]
 
@@ -83,5 +85,5 @@ def _get_sprite(key, nocache=False):
 
 
 def get_sprite(ent_id, size, color_id=0, direction=(0, 1), anim_idx=0):
-    key = (ent_id, size, color_id, direction, anim_idx)
+    key = (ent_id, size, color_id, direction, anim_idx % 2)
     return _get_sprite(key)

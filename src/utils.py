@@ -10,3 +10,11 @@ def asset_path(filepath):
         return os.path.join(sys._MEIPASS, filepath)
     else:
         return filepath
+
+
+def add(t1, t2):
+    return tuple(i1 + i2 for i1, i2 in zip(t1, t2))
+
+
+def sub(t1, t2):
+    return tuple(i1 - i2 for i1, i2 in zip(t1, t2))
