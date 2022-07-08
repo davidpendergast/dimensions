@@ -1,3 +1,5 @@
+import traceback
+
 import pygame
 import typing
 from functools import total_ordering
@@ -19,6 +21,7 @@ def next_uid() -> int:
 def get_anim_idx():
     anim_speed = 4
     return int(inputs.get_time() * anim_speed)
+
 
 @total_ordering
 class Entity:
@@ -76,11 +79,11 @@ class Entity:
 
 class Box(Entity):
 
-    def __init__(self, uid=None):
-        super().__init__(sprites.EntityID.BOX, color_id=colors.BROWN_ID, uid=uid)
+    def __init__(self, color_id=colors.BROWN_ID, uid=None):
+        super().__init__(sprites.EntityID.BOX, color_id=color_id, uid=uid)
 
     def copy(self, dest=None):
-        return super().copy(dest=dest or Box())
+        return super().copy(dest=dest or Box(color_id=self.color_id))
 
     def is_pushable(self):
         return True
@@ -152,10 +155,28 @@ class Enemy(Entity):
         return super().copy(dest=dest or Enemy(self.color_id, self.direction))
 
 
+class Snek(Entity):
+
+    def __init__(self, color_id=colors.YELLOW_ID, uid=None):
+        super().__init__(sprites.EntityID.SNEK, color_id=color_id, uid=uid)
+
+    def is_pushable(self):
+        return True
+
+    def is_crushable(self):
+        return False
+
+    def is_solid(self):
+        return True
+
+    def copy(self, dest=None):
+        return super().copy(dest=dest or Snek(color_id=self.color_id))
+
+
 class Potion(Entity):
 
-    def __init__(self, color_id):
-        super().__init__(sprites.EntityID.POTION, color_id)
+    def __init__(self, color_id=colors.PINK_ID, uid=None):
+        super().__init__(sprites.EntityID.POTION, color_id=color_id, uid=uid)
 
     def can_push(self):
         return False
@@ -175,14 +196,14 @@ class Potion(Entity):
 
 class State:
 
-    def __init__(self, color_id, step=0, prev=None):
-        self.color_id = color_id
+    def __init__(self, name, step=0, prev=None):
+        self.name = name
         self.step = step
         self.prev: typing.Optional['State'] = prev
         self.level: typing.Dict[typing.Tuple[int, int], typing.List[Entity]] = {}
 
     def copy(self) -> 'State':
-        res = State(self.color_id, step=self.step, prev=self.prev)
+        res = State(self.name, step=self.step, prev=self.prev)
         for xy in self.level:
             for e in self.level[xy]:
                 res.add_entity(xy, e.copy())
@@ -348,19 +369,6 @@ class State:
         res = self.copy()
         res.prev = self
         res.step += 1
-        # Movement Rules:
-        # 1. Player moves first, pushing any boxes in its path.
-        # 2. Enemies move second, changing direction if they run into a wall or box.
-        # 3. Boxes push other boxes, enemies, and potions, and cannot pass through walls.
-        # 4. Potions and enemies cannot push boxes (even if the player is pushing them with another box).
-        # 5. If pushed and there's no space to move into, potions and enemies will be crushed.
-        # 6. If the player moves into an enemy, or an enemy moves into the player, the player is killed.
-        # 7. If the player or an enemy moves into a potion, or has it moved into them, they will become that color.
-        # 8. Objects of the same color do not interact.
-        # 9. The player, walls, enemies, and potions can have color.
-        # 10. Boxes do not interact with walls or enemies of the player's color.
-        # 11. Enemies disappear when player becomes their color(?).
-        # 12. To beat the level, destroy all enemies.
 
         # move player
         if not res._try_to_move_player(player_dir):
@@ -385,5 +393,57 @@ class State:
                 ent_xy = (pos[0] + cellsize * xy[0],
                           pos[1] + cellsize * xy[1])
                 surf.blit(ent_sprite, ent_xy)
+
+NAME_TAG = "name"
+DATA_TAG = "data"
+
+PLAYER_PREFIX = "P"
+WALL_PREFIX = "W"
+POTION_PREFIX = "p"
+ENEMY_PREFIXES = {"U": (0, -1), "D": (0, 1), "L": (-1, 0), "R": (1, 0),  "N": (0, 0)}
+SNEK_PREFIX = "S"
+BOX_PREFIX = "B"
+
+sample_blob = {
+    NAME_TAG: "Blocks",
+    DATA_TAG: [
+"W0 W0 W0 W0 W0 W0 W0 W0 W0 W0",
+"W0                p3       W0",
+"W0                         W0",
+"W0       P1       B6       W0",
+"W0                L2       W0",
+"W0                         W0",
+"W0 W0 W0 W0 W0 W0 W0 W0 W0 W0",
+    ]
+}
+
+_OBJ_CREATOR = {
+    PLAYER_PREFIX: lambda c: Player(color_id=c),
+    WALL_PREFIX: lambda c: Wall(color_id=c),
+    POTION_PREFIX: lambda c: Potion(color_id=c),
+    BOX_PREFIX: lambda c: Box(color_id=c),
+    SNEK_PREFIX: lambda c: Snek(color_id=c),
+}
+for _pfx in ENEMY_PREFIXES:
+    _OBJ_CREATOR[_pfx] = lambda c: Enemy(c, ENEMY_PREFIXES[_pfx])
+
+
+def from_json(blob) -> State:
+    name = str(blob[NAME_TAG])
+    res = State(name)
+    for y in range(len(blob[DATA_TAG])):
+        row = blob[DATA_TAG][y]
+        for i in range(0, len(row), 3):
+            prefix = row[i:i+1]
+            if prefix == ' ':
+                continue
+            else:
+                color_id = int(row[i+1:i+2])
+                obj = _OBJ_CREATOR[prefix](color_id)
+
+                x = i // 3
+                res.add_entity((x, y), obj)
+    return res
+
 
 

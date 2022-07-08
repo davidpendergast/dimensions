@@ -9,7 +9,7 @@ import src.colors as colors
 
 
 def make_demo_state():
-    state = level.State(colors.WHITE_ID)
+    state = level.State("Demo")
 
     state.add_entity((4, 4), level.Player(colors.RED_ID))
     state.add_entity((5, 2), level.Wall())
@@ -29,7 +29,7 @@ def make_demo_state():
 def make_demo_state2(dims):
     import random
 
-    state = level.State(colors.WHITE_ID)
+    state = level.State("Demo 2")
     for x in range(dims[0]):
         for y in range(dims[1]):
             xy = (x, y)
@@ -49,6 +49,10 @@ def make_demo_state2(dims):
     state.add_entity(p_xy, level.Player(colors.RED_ID))
 
     return state
+
+
+def make_demo_from_json():
+    return level.from_json(level.sample_blob)
 
 
 class Game:
@@ -91,7 +95,7 @@ class Game:
             state.render_level(screen, (0, 0), cellsize=48)
 
             if inputs.was_pressed(configs.RESET):
-                state = make_demo_state2((13, 10))
+                state = make_demo_from_json()  # make_demo_state2((13, 10))
             elif inputs.was_pressed(configs.ALL_MOVE_KEYS):
                 if inputs.was_pressed(configs.MOVE_LEFT):
                     direction = (-1, 0)
