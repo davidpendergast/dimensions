@@ -247,6 +247,12 @@ class State:
                 if e.ent_id in ent_ids:
                     yield xy
 
+    def all_entity_positions(self, cond=None):
+        for xy in self.level:
+            for e in self.all_entities_at(xy):
+                if cond is None or cond(e):
+                    yield e, xy
+
     def is_empty(self, xy):
         for _ in self.all_entities_at(xy):
             return True
@@ -394,6 +400,7 @@ class State:
                           pos[1] + cellsize * xy[1])
                 surf.blit(ent_sprite, ent_xy)
 
+
 NAME_TAG = "name"
 DATA_TAG = "data"
 
@@ -407,13 +414,13 @@ BOX_PREFIX = "B"
 sample_blob = {
     NAME_TAG: "Blocks",
     DATA_TAG: [
-"W0 W0 W0 W0 W0 W0 W0 W0 W0 W0",
-"W0                p3       W0",
-"W0                         W0",
-"W0       P1       B6       W0",
-"W0                L2       W0",
-"W0                         W0",
-"W0 W0 W0 W0 W0 W0 W0 W0 W0 W0",
+        "W0 W0 W0 W0 W0 W0 W0 W0 W0 W0",
+        "W0                p3       W0",
+        "W0                         W0",
+        "W0       P1       B6       W0",
+        "W0                L2       W0",
+        "W0                         W0",
+        "W0 W0 W0 W0 W0 W0 W0 W0 W0 W0",
     ]
 }
 

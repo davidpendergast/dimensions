@@ -6,6 +6,7 @@ import src.inputs as inputs
 import src.level as level
 import src.sprites as sprites
 import src.colors as colors
+import src.rendering as rendering
 
 
 def make_demo_state():
@@ -73,6 +74,7 @@ class Game:
         sprites.load()
 
         state = make_demo_state()
+        renderer = rendering.AnimatedLevelRenderer(state, cell_size=48)
 
         while running:
             inputs.new_frame(pygame.time.get_ticks() / 1000.0)
@@ -89,13 +91,9 @@ class Game:
                     inputs.mouse_moved(e.pos)
                     inputs.mouse_button_down(e.button)
 
-            screen = pygame.display.get_surface()
-            screen.fill("black")
-
-            state.render_level(screen, (0, 0), cellsize=48)
-
             if inputs.was_pressed(configs.RESET):
-                state = make_demo_from_json()  # make_demo_state2((13, 10))
+                state = make_demo_state2((13, 10))
+                renderer.set_state(state, prev=None)
             elif inputs.was_pressed(configs.ALL_MOVE_KEYS):
                 if inputs.was_pressed(configs.MOVE_LEFT):
                     direction = (-1, 0)
@@ -107,7 +105,15 @@ class Game:
                     direction = (0, 1)
                 else:
                     direction = (0, 0)
-                state = state.get_next(direction)
+                old_state = state
+                state = old_state.get_next(direction)
+                renderer.set_state(state, prev=old_state)
+
+            screen = pygame.display.get_surface()
+            screen.fill("black")
+
+            renderer.update()
+            renderer.draw(screen)
 
             pygame.display.flip()
             pygame.display.set_caption(f"Color Quest [FPS={self.clock.get_fps():.1f}]")
