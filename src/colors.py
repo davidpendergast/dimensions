@@ -1,3 +1,5 @@
+import src.utils as utils
+
 
 BLACK_ID = -1
 WHITE_ID = 0
@@ -57,3 +59,12 @@ def get_color(color_id):
         return COLORS[color_id]
     else:
         return 0, 0, 0
+
+
+def interpolate(c1, c2, a, steps=None):
+    diff = utils.sub(c2, c1)
+    if steps is not None:
+        diff = tuple(steps * round(d * a) for d in utils.scale(diff, 1 / steps))
+    else:
+        diff = tuple(round(d * a) for d in diff)
+    return utils.bound(utils.add(c1, diff), 0, 255)

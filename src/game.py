@@ -5,6 +5,7 @@ import configs
 import src.inputs as inputs
 import src.level as level
 import src.colors as colors
+import src.menus as menus
 import src.rendering as rendering
 
 import src.sprites as sprites
@@ -67,6 +68,8 @@ class Game:
         self.fps = fps
         self.clock = None
 
+        self.menu_manager = None
+
     def get_flags(self):
         if configs.WEB_MODE:
             return 0
@@ -86,6 +89,8 @@ class Game:
         colors.load(colorblind=configs.COLORBLIND_MODE)
         sounds.play_song(sounds.MAIN_SONG)
 
+        self.menu_manager = menus.MenuManager(menus.MainMenu())
+
         state = make_demo_state()
         renderer = rendering.AnimatedLevelRenderer(state, cell_size=48)
 
@@ -95,14 +100,14 @@ class Game:
                 if e.type == pygame.QUIT:
                     running = False
                 elif e.type == pygame.KEYDOWN:
-                    inputs.key_down(e.key)
+                    inputs.send_key_down(e.key)
                 elif e.type == pygame.KEYUP:
-                    inputs.key_up(e.key)
+                    inputs.send_key_up(e.key)
                 elif e.type == pygame.MOUSEMOTION:
-                    inputs.mouse_moved(e.pos)
+                    inputs.send_mouse_moved(e.pos)
                 elif e.type == pygame.MOUSEBUTTONDOWN:
-                    inputs.mouse_moved(e.pos)
-                    inputs.mouse_button_down(e.button)
+                    inputs.send_mouse_moved(e.pos)
+                    inputs.send_mouse_button_down(e.button)
 
             if inputs.was_pressed(configs.RESET):
                 state = make_demo_state2((13, 10))
@@ -122,24 +127,32 @@ class Game:
                     direction = (0, 1)
                 else:
                     direction = (0, 0)
-                old_state = state
-                state = old_state.get_next(direction)
-                renderer.set_state(state, prev=old_state)
-                state.what_was.play_sounds()
-                print(f"step={state.step}:\t{state.what_was}")
+                # old_state = state
+                # state = old_state.get_next(direction)
+                # renderer.set_state(state, prev=old_state)
+                # state.what_was.play_sounds()
+                # print(f"step={state.step}:\t{state.what_was}")
+
+            self.menu_manager.update(dt)
 
             screen = pygame.display.get_surface()
             screen.fill("black")
 
-            renderer.get_offset_for_centering(screen, and_apply=True)
-            renderer.update()
-            renderer.draw(screen)
+            # renderer.get_offset_for_centering(screen, and_apply=True)
+            # renderer.update()
+            # renderer.draw(screen)
+
+            self.menu_manager.draw(screen)
 
             pygame.display.flip()
             pygame.display.set_caption(f"Color Quest [FPS={self.clock.get_fps():.1f}]")
 
             await asyncio.sleep(0)
             dt = self.clock.tick(self.fps)
+
+            if inputs.was_quit_requested() and not configs.WEB_MODE:
+                print("INFO: quit signal received; quitting")
+                running = False
 
 
 

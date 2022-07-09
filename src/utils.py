@@ -26,6 +26,14 @@ def scale(t1, a):
     return tuple(i * a for i in t1)
 
 
+def bound(t, lower, upper):
+    return tuple(min(max(lower, i), upper) for i in t)
+
+
+def round(t):
+    return tuple(round(i) for i in t)
+
+
 def rect_contains(rect, xy) -> bool:
     return not (xy[0] < rect[0]
                 or xy[1] < rect[1]
