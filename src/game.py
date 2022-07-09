@@ -78,6 +78,7 @@ class Game:
         sprites.load()
         sounds.load()
         colors.load(colorblind=configs.COLORBLIND_MODE)
+        sounds.play_song(sounds.MAIN_SONG)
 
         state = make_demo_state()
         renderer = rendering.AnimatedLevelRenderer(state, cell_size=48)
@@ -118,8 +119,8 @@ class Game:
                 old_state = state
                 state = old_state.get_next(direction)
                 renderer.set_state(state, prev=old_state)
+                state.what_was.play_sounds()
                 print(f"step={state.step}:\t{state.what_was}")
-                sounds.play("box_move")
 
             screen = pygame.display.get_surface()
             screen.fill("black")

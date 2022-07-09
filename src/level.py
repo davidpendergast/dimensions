@@ -2,11 +2,13 @@ import traceback
 
 import pygame
 import typing
+
 from functools import total_ordering
 
 import src.sprites as sprites
 import src.inputs as inputs
 import src.colors as colors
+import src.sounds as sounds
 import src.utils as utils
 
 _UID_COUNTER = 1
@@ -209,6 +211,9 @@ class WhatHappened:
         self.consumed: typing.Set[Entity] = set()
         self.colored: typing.Set[Entity] = set()
         self.turned: typing.Set[Entity] = set()
+
+    def play_sounds(self):
+        pass
 
     def __repr__(self):
         l = []

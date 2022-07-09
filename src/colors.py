@@ -34,11 +34,11 @@ def _hex_to_ints(hex_val):
 # https://davidmathlogic.com/colorblind/#%23648FFF-%23725CD8-%23DC267F-%23FE6100-%23FFB000-%23D2A96A-%23FFFFFF
 COLORBLIND_COLORS = {
     BLUE_ID: _hex_to_ints(0x648fff),
-    GREEN_ID: _hex_to_ints(0x785ef0),
+    GREEN_ID: _hex_to_ints(0x9FF986),  # 0x785ef0),  # tweaked
     PINK_ID: _hex_to_ints(0xdc267f),
     RED_ID: _hex_to_ints(0xfe6100),
     YELLOW_ID: _hex_to_ints(0xffb000),
-    BROWN_ID: _hex_to_ints(0xD2A96A)  # I added this one
+    BROWN_ID: _hex_to_ints(0xD2A96A)  # I added this
 }
 
 

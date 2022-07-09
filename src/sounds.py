@@ -5,6 +5,7 @@ import os
 import traceback
 import typing
 
+import configs
 import src.inputs as inputs
 import src.utils as utils
 
@@ -39,8 +40,54 @@ def play(name):
     cur_time = inputs.get_time()
     if name in _TIMES_PLAYED and cur_time == _TIMES_PLAYED[name]:
         pass  # already played this sound this frame
+    elif configs.SOUND_MUTED or configs.SOUND_VOLUME <= 0:
+        pass
     elif name in _SOUNDS and len(_SOUNDS[name]) > 0:
         _TIMES_PLAYED[name] = cur_time
         to_play = random.choice(_SOUNDS[name])
+        to_play.set_volume(configs.SOUND_VOLUME)
         to_play.play()
+
+
+_SONGS = {
+    "mysterious": "4-Rrapo-Taho-Mysterious-Answers.ogg"
+}
+
+MAIN_SONG = 'mysterious'
+
+
+def play_song(name):
+    if name in _SONGS:
+        base_path = utils.asset_path("assets/songs")
+        filepath = os.path.join(base_path, _SONGS[name])
+        try:
+            pygame.mixer.music.load(filepath)
+            pygame.mixer.music.set_volume(configs.SONG_VOLUME)
+            pygame.mixer.music.play()
+        except (IOError, pygame.error):
+            print(f"ERROR: failed to load long {filepath}")
+            traceback.print_exc()
+    elif name is None:
+        pygame.mixer.music.stop()
+    else:
+        raise ValueError(f"unrecognized song id: {name}")
+
+
+def set_song_volume(vol):
+    configs.SONG_VOLUME = vol
+    pygame.mixer.music.set_volume(vol if not configs.SONG_MUTED else 0)
+
+
+def set_sound_volume(vol):
+    configs.SOUND_VOLUME = vol
+
+
+def set_songs_muted(muted):
+    configs.SONG_MUTED = muted
+    pygame.mixer.music.set_volume(configs.SONG_VOLUME if not configs.SONG_MUTED else 0)
+
+
+def set_sounds_muted(muted):
+    configs.SOUND_MUTED = muted
+
 
