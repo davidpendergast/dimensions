@@ -2,6 +2,8 @@ import typing
 import random
 import math
 
+import pygame
+
 import src.level as level
 import src.inputs as inputs
 import src.utils as utils
@@ -14,6 +16,7 @@ class LevelRenderer:
         self.prev_state: typing.Optional[level.State] = None
         self.prev_state_time = 0
 
+        self.centered = True
         self.xy_offset = (0, 0)
         self.cell_size = cell_size
 
@@ -28,7 +31,21 @@ class LevelRenderer:
         self.prev_state_time = inputs.get_time()
 
     def set_offset(self, offs_xy):
-        self.xy_offset = offs_xy
+        if offs_xy is not None:
+            self.xy_offset = offs_xy
+
+    def get_offset_for_centering(self, screen: pygame.Surface, state=None, and_apply=True):
+        state = state or self.cur_state
+        if state is not None:
+            rect = utils.scale(state.get_area(), self.cell_size)
+            world_center = utils.rect_center(rect)
+            screen_center = utils.scale(screen.get_size(), 0.5)
+            res = utils.sub(screen_center, world_center)
+            if and_apply:
+                self.set_offset(res)
+            return res
+        else:
+            return None
 
     def update(self):
         pass
@@ -65,6 +82,25 @@ class AnimatedLevelRenderer(LevelRenderer):
         self.spin_hz = 1
         self.fancy_radius = 0.25
 
+    def get_interp(self, cur_time=None):
+        cur_time = inputs.get_time() if cur_time is None else cur_time
+        if cur_time > self.prev_state_time + self.trans_time or self.prev_state is None:
+            return 1
+        else:
+            return (cur_time - self.prev_state_time) / self.trans_time
+
+    def get_offset_for_centering(self, screen: pygame.Surface, state=None, and_apply=True):
+        interp = self.get_interp()
+        if interp >= 1:
+            return super().get_offset_for_centering(screen, state=state, and_apply=and_apply)
+        else:
+            prev_offs = super().get_offset_for_centering(screen, state=self.prev_state, and_apply=False)
+            cur_offs = super().get_offset_for_centering(screen, state=self.cur_state, and_apply=False)
+            offs = utils.interpolate(prev_offs, cur_offs, interp)
+            if and_apply:
+                self.set_offset(offs)
+            return offs
+
     def all_sorted_entities_to_render(self):
         if self.cur_state is None:
             return ()
@@ -73,7 +109,9 @@ class AnimatedLevelRenderer(LevelRenderer):
         nonwalls = []
 
         cur_time = inputs.get_time()
-        if cur_time > self.prev_state_time + self.trans_time or self.prev_state is None:
+        interp = self.get_interp(cur_time=cur_time)
+
+        if interp >= 1:
             # we're not mid-update
             for xy in self.cur_state.level:
                 temp_nonwalls = []
@@ -95,7 +133,6 @@ class AnimatedLevelRenderer(LevelRenderer):
             # we're interpolating
             cur_ents = {e_xy[0]: e_xy[1] for e_xy in self.cur_state.all_entity_positions()}
             old_ents = {e_xy[0]: e_xy[1] for e_xy in self.prev_state.all_entity_positions()}
-            interp = (cur_time - self.prev_state_time) / self.trans_time
 
             for e in cur_ents:
                 if e.is_wall():

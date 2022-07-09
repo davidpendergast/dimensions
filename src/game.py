@@ -67,9 +67,15 @@ class Game:
         self.fps = fps
         self.clock = None
 
+    def get_flags(self):
+        if configs.WEB_MODE:
+            return 0
+        else:
+            return pygame.SCALED | pygame.RESIZABLE
+
     async def start(self):
         pygame.init()
-        pygame.display.set_mode(self.dims)
+        pygame.display.set_mode(self.dims, flags=self.get_flags())
         self.clock = pygame.time.Clock()
 
         dt = 0
@@ -125,6 +131,7 @@ class Game:
             screen = pygame.display.get_surface()
             screen.fill("black")
 
+            renderer.get_offset_for_centering(screen, and_apply=True)
             renderer.update()
             renderer.draw(screen)
 

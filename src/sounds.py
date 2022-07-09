@@ -13,6 +13,16 @@ _SOUNDS: typing.Dict[str, typing.List[pygame.mixer.Sound]] = {}
 _TIMES_PLAYED: typing.Dict[str, float] = {}
 
 
+BOX_MOVED = "box_move"
+PLAYER_MOVED = "move"
+ENEMY_MOVED = "move"
+PLAYER_KILLED = "synth"
+PLAYER_SKIPPED = "move"
+ENEMY_KILLED = "synth"
+POTION_CRUSHED = "click"
+POTION_CONSUMED = "powerup"
+
+
 def load():
     _SOUNDS.clear()
 
@@ -21,7 +31,7 @@ def load():
         if name.endswith(".wav") or name.endswith(".ogg"):
             filepath = os.path.join(base_path, name)
 
-            prefix = name[:name.index(".")]
+            prefix = name[:name.index(".")].lower()
             if "(" in prefix:
                 prefix = prefix[:prefix.index("(")]
 
@@ -37,6 +47,8 @@ def load():
 
 
 def play(name):
+    if name is None:
+        return
     cur_time = inputs.get_time()
     if name in _TIMES_PLAYED and cur_time == _TIMES_PLAYED[name]:
         pass  # already played this sound this frame
@@ -47,6 +59,8 @@ def play(name):
         to_play = random.choice(_SOUNDS[name])
         to_play.set_volume(configs.SOUND_VOLUME)
         to_play.play()
+    else:
+        print(f"WARN: unrecognized sound id: {name}")
 
 
 _SONGS = {
@@ -56,14 +70,14 @@ _SONGS = {
 MAIN_SONG = 'mysterious'
 
 
-def play_song(name):
+def play_song(name, loops=-1):
     if name in _SONGS:
         base_path = utils.asset_path("assets/songs")
         filepath = os.path.join(base_path, _SONGS[name])
         try:
             pygame.mixer.music.load(filepath)
             pygame.mixer.music.set_volume(configs.SONG_VOLUME)
-            pygame.mixer.music.play()
+            pygame.mixer.music.play(loops=loops)
         except (IOError, pygame.error):
             print(f"ERROR: failed to load long {filepath}")
             traceback.print_exc()

@@ -213,7 +213,24 @@ class WhatHappened:
         self.turned: typing.Set[Entity] = set()
 
     def play_sounds(self):
-        pass
+        if utils.contains_type(self.moved, Box):
+            sounds.play(sounds.BOX_MOVED)
+
+        if utils.contains_type(self.killed, Player):
+            sounds.play(sounds.PLAYER_KILLED)
+        elif utils.contains_type(self.moved, Player):
+            sounds.play(sounds.PLAYER_MOVED)
+        elif utils.contains_type(self.moved, Enemy) or utils.contains_type(self.turned, Enemy):
+            sounds.play(sounds.ENEMY_MOVED)
+        else:
+            sounds.play(sounds.PLAYER_SKIPPED)
+
+        if utils.contains_type(self.killed, Enemy):
+            sounds.play(sounds.ENEMY_KILLED)
+        elif utils.contains_type(self.crushed, Potion):
+            sounds.play(sounds.POTION_CRUSHED)
+        elif utils.contains_type(self.consumed, Potion):
+            sounds.play(sounds.POTION_CONSUMED)
 
     def __repr__(self):
         l = []

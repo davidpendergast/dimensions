@@ -22,6 +22,10 @@ def sub(t1, t2):
     return tuple(i1 - i2 for i1, i2 in zip(t1, t2))
 
 
+def scale(t1, a):
+    return tuple(i * a for i in t1)
+
+
 def rect_contains(rect, xy) -> bool:
     return not (xy[0] < rect[0]
                 or xy[1] < rect[1]
@@ -41,8 +45,16 @@ def get_rect_containing_points(pts) -> typing.Tuple[int, int, int, int]:
         return min_x, min_y, max_x - min_x + 1, max_y - min_y + 1
 
 
+def rect_center(rect):
+    return rect[0] + rect[2] / 2, rect[1] + rect[3] / 2
+
+
 def interpolate(t1, t2, a, rounded=False):
     if rounded:
         return tuple(round(i1 + a * (i2 - i1)) for i1, i2 in zip(t1, t2))
     else:
         return tuple(i1 + a * (i2 - i1) for i1, i2 in zip(t1, t2))
+
+
+def contains_type(iterable, types):
+    return any(x for x in iterable if isinstance(x, types))
