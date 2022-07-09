@@ -26,6 +26,7 @@ def make_demo_state():
     state.add_entity((5, 7), level.Box())
     state.add_entity((8, 5), level.Potion(colors.PINK_ID))
 
+    state.get_area(cache=True)
     return state
 
 
@@ -50,6 +51,7 @@ def make_demo_state2(dims):
     for e in list(state.all_entities_at(p_xy)):
         state.remove_entity(p_xy, e)
     state.add_entity(p_xy, level.Player(colors.RED_ID))
+    state.get_area(cache=True)
 
     return state
 

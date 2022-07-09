@@ -232,20 +232,31 @@ class WhatHappened:
 
 class State:
 
-    def __init__(self, name, step=0, prev=None):
+    def __init__(self, name, step=0, bounds=None, prev=None):
         self.name = name
         self.step = step
         self.prev: typing.Optional['State'] = prev
         self.level: typing.Dict[typing.Tuple[int, int], typing.List[Entity]] = {}
+        self.bounds = bounds
 
         self.what_was = WhatHappened()  # note: not copied
 
     def copy(self) -> 'State':
         res = State(self.name, step=self.step, prev=self.prev)
+        res.bounds = None if self.bounds is None else tuple(self.bounds)
         for xy in self.level:
             for e in self.level[xy]:
                 res.add_entity(xy, e.copy())
         return res
+
+    def get_area(self, cache=False):
+        if self.bounds is None and cache and not len(self.level) == 0:
+            self.bounds = utils.get_rect_containing_points(self.level.keys())
+
+        if self.bounds is not None:
+            return self.bounds
+        else:
+            return utils.get_rect_containing_points(self.level.keys())
 
     def get_xy(self, ent):
         # TODO this is real bad
@@ -253,7 +264,12 @@ class State:
             return xy
         return None
 
-    def add_entity(self, xy, ent):
+    def is_in_bounds(self, xy):
+        return self.bounds is None or utils.rect_contains(self.bounds, xy)
+
+    def add_entity(self, xy, ent, ignore_bounds=False):
+        if not ignore_bounds and not self.is_in_bounds(xy):
+            raise ValueError(f"tried to add {ent} out of bounds: {xy}")
         if xy not in self.level:
             self.level[xy] = []
         self.level[xy].append(ent)
@@ -266,10 +282,10 @@ class State:
             if len(self.level[xy]) == 0:
                 del self.level[xy]
 
-    def move_entity(self, from_xy, to_xy, entity):
+    def move_entity(self, from_xy, to_xy, entity, ignore_bounds=False):
         if from_xy != to_xy:
             self.remove_entity(from_xy, entity)
-            self.add_entity(to_xy, entity)
+            self.add_entity(to_xy, entity, ignore_bounds=ignore_bounds)
             self.what_was.moved.add(entity)
 
     def all_entities_at(self, xy):
@@ -305,12 +321,16 @@ class State:
         return False
 
     def is_solid(self, xy, for_color_id=None):
+        if not self.is_in_bounds(xy):
+            return True
         for e in self.all_entities_at(xy):
             if e.is_solid() and (for_color_id is None or e.color_id != for_color_id):
                 return True
         return False
 
     def is_pushable(self, xy):
+        if not self.is_in_bounds(xy):
+            return False
         for e in self.all_entities_at(xy):
             if e.is_solid() and not e.is_pushable():
                 return False
@@ -321,7 +341,7 @@ class State:
         if not self.is_solid(start_xy):
             for e in list(self.all_entities_at(start_xy)):
                 if e.is_pushable():
-                    self.move_entity(start_xy, dest_xy, e)
+                    self.move_entity(start_xy, dest_xy, e, ignore_bounds=e.is_crushable())
             return True
         elif not self.is_pushable(start_xy):
             return False  # something solid that can't be pushed
@@ -362,10 +382,14 @@ class State:
     def _remove_crushed_things(self):
         crushed = []
         for (e, xy) in self.all_entities_with_type(sprites.EntityID.all_crushables()):
-            for e2 in self.all_entities_at(xy):
-                if e2 != e and e2.is_solid() and e2.color_id != e.color_id:
-                    crushed.append((e, xy))
-                    break
+            if self.is_in_bounds(xy):
+                for e2 in self.all_entities_at(xy):
+                    if e2 != e and e2.is_solid() and e2.color_id != e.color_id:
+                        crushed.append((e, xy))
+                        break
+            else:
+                crushed.append((e, xy))
+                
         for (e, xy) in crushed:
             self.remove_entity(xy, e)
             self.what_was.crushed.add(e)
@@ -505,6 +529,7 @@ def from_json(blob) -> State:
 
                 x = i // 3
                 res.add_entity((x, y), obj)
+    res.get_area(cache=True)
     return res
 
 
