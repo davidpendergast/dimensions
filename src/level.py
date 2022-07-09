@@ -76,6 +76,12 @@ class Entity:
     def is_solid(self):
         return True
 
+    def is_wall(self):
+        return isinstance(self, Wall)
+
+    def is_box(self):
+        return isinstance(self, Box)
+
 
 class Box(Entity):
 
