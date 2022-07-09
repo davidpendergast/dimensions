@@ -7,6 +7,7 @@ import pygame
 import src.level as level
 import src.inputs as inputs
 import src.utils as utils
+import src.sprites as sprites
 
 
 class LevelRenderer:
@@ -57,7 +58,13 @@ class LevelRenderer:
                     yield ent, xy
 
     def draw_entity_at(self, ent, surf, xy):
-        ent_sprite = ent.get_sprite(self.cell_size)
+        if isinstance(ent, level.Entity):
+            ent_sprite = ent.get_sprite(self.cell_size)
+        elif isinstance(ent, pygame.Surface):
+            ent_sprite = ent
+        else:
+            raise ValueError(f"cannot draw {ent}")
+
         ent_xy = (round(self.xy_offset[0] + self.cell_size * xy[0]),
                   round(self.xy_offset[1] + self.cell_size * xy[1]))
         surf.blit(ent_sprite, ent_xy)
@@ -146,7 +153,9 @@ class AnimatedLevelRenderer(LevelRenderer):
                     nonwalls.append((e, cur_ents[e]))  # it didn't move
             for e in old_ents:
                 if e not in cur_ents:
-                    nonwalls.append((e, old_ents[e]))  # it died
+                    spr = sprites.get_animated_sprite(sprites.EntityID.EXPLOSION, self.cell_size, interp,
+                                                      color_id=e.color_id)
+                    nonwalls.append((spr, utils.add(old_ents[e], (0, 0.001))))  # it died, render an explosion
 
         walls.sort(key=lambda w_xy: (w_xy[1][1], w_xy[1][0], w_xy[0]))
         for w_xy in walls:

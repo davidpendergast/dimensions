@@ -19,6 +19,8 @@ class EntityID:
     BOX = "b"
     GOAL = "g"
 
+    EXPLOSION = "e"
+
     @staticmethod
     def all_enemies():
         return (EntityID.H_WALKER, EntityID.V_WALKER, EntityID.NO_WALKER)
@@ -41,11 +43,14 @@ def load():
     img_path = utils.asset_path("assets/assets.png")
     SHEET = pygame.image.load(img_path).convert_alpha()
 
-    def imgs(xs, y, w=16, h=16):
-        if isinstance(xs, int):
-            return [SHEET.subsurface([xs, y, w, h])]
-        else:
-            return [SHEET.subsurface(x, y, w, h) for x in xs]
+    def imgs(xs, ys, w=16, h=16):
+        ys = (ys,) if isinstance(ys, int) else ys
+        xs = (xs,) if isinstance(xs, int) else xs
+        res = []
+        for y in ys:
+            for x in xs:
+                res.append(SHEET.subsurface(x, y, w, h))
+        return res
 
     BASE_SPRITES[EntityID.PLAYER] = imgs((0, 16), 0)
     BASE_SPRITES[EntityID.H_WALKER] = imgs((0, 16), 16)
@@ -55,6 +60,7 @@ def load():
     BASE_SPRITES[EntityID.SNEK] = imgs((16, 32), 16)
     BASE_SPRITES[EntityID.POTION] = imgs(0, 48)
     BASE_SPRITES[EntityID.BOX] = imgs(48, 0)
+    BASE_SPRITES[EntityID.EXPLOSION] = imgs((64, 80, 96, 112), (0, 16, 32))
 
 
 def clear_cache():
@@ -79,14 +85,16 @@ def _recolor_fast(surf: pygame.Surface, end_color):
 
 
 def _get_sprite(key, nocache=False):
+    ent_id, size, color_id, direction, anim_idx = key
+    base_sprites = BASE_SPRITES[ent_id]
+    if len(base_sprites) == 4 and ent_id == EntityID.V_WALKER:
+        base_sprites = base_sprites[0:2] if direction[1] >= 0 else base_sprites[2:4]
+
+    anim_idx = anim_idx % len(base_sprites)
+    key = ent_id, size, color_id, direction, anim_idx
+
     if key not in _CACHE:
-        ent_id, size, color_id, direction, anim_idx = key
-        base_sprites = BASE_SPRITES[ent_id]
-
-        if len(base_sprites) == 4:
-            base_sprites = base_sprites[0:2] if direction[1] >= 0 else base_sprites[2:4]
-
-        sprite: pygame.Surface = base_sprites[anim_idx % len(base_sprites)]
+        sprite: pygame.Surface = base_sprites[anim_idx]
         if direction[0] < 0 and ent_id in (EntityID.PLAYER, EntityID.H_WALKER,
                                            EntityID.V_WALKER, EntityID.SNEK):
             sprite = pygame.transform.flip(sprite, True, False)
@@ -104,5 +112,11 @@ def _get_sprite(key, nocache=False):
 
 
 def get_sprite(ent_id, size, color_id=0, direction=(0, 1), anim_idx=0):
-    key = (ent_id, size, color_id, direction, anim_idx % 2)
+    key = (ent_id, size, color_id, direction, anim_idx)
     return _get_sprite(key)
+
+
+def get_animated_sprite(ent_id, size, prog, color_id=0, direction=(0, 1)):
+    base_sprites = BASE_SPRITES[ent_id]
+    idx = max(0, min(len(base_sprites), int(prog * (len(base_sprites)))))
+    return get_sprite(ent_id, size, color_id=color_id, direction=direction, anim_idx=idx)
