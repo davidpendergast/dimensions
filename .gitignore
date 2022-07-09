@@ -9,3 +9,4 @@ dest/*
 dist/*
 build/*
 *.mp4
+assets/wavs/*

@@ -4,9 +4,11 @@ import asyncio
 import configs
 import src.inputs as inputs
 import src.level as level
-import src.sprites as sprites
 import src.colors as colors
 import src.rendering as rendering
+
+import src.sprites as sprites
+import src.sounds as sounds
 
 
 def make_demo_state():
@@ -72,6 +74,7 @@ class Game:
         running = True
 
         sprites.load()
+        sounds.load()
 
         state = make_demo_state()
         renderer = rendering.AnimatedLevelRenderer(state, cell_size=48)
@@ -108,6 +111,7 @@ class Game:
                 old_state = state
                 state = old_state.get_next(direction)
                 renderer.set_state(state, prev=old_state)
+                sounds.play("box_move")
 
             screen = pygame.display.get_surface()
             screen.fill("black")

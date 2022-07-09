@@ -114,4 +114,3 @@ class AnimatedLevelRenderer(LevelRenderer):
 
             for xy, ent, ent_state in to_render:
                 self.draw_entity_at(ent, surf, xy)
-                

@@ -1,4 +1,7 @@
 
 Font:
-    alagard by Hewett Tsoi
+    Alagard by Hewett Tsoi
     https://www.dafont.com/alagard.font
+    
+Sounds:
+    Generated (by me) using https://sfxr.me/
