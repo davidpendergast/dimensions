@@ -57,6 +57,10 @@ def load():
     BASE_SPRITES[EntityID.BOX] = imgs(48, 0)
 
 
+def clear_cache():
+    _CACHE.clear()
+
+
 def _recolor_slow(surf: pygame.Surface, start_color, end_color):
     # slow operation, make sure to cache the result
     res = surf.copy()

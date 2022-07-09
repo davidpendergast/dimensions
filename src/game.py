@@ -75,6 +75,7 @@ class Game:
 
         sprites.load()
         sounds.load()
+        colors.load(colorblind=configs.COLORBLIND_MODE)
 
         state = make_demo_state()
         renderer = rendering.AnimatedLevelRenderer(state, cell_size=48)
@@ -97,6 +98,10 @@ class Game:
             if inputs.was_pressed(configs.RESET):
                 state = make_demo_state2((13, 10))
                 renderer.set_state(state, prev=None)
+            elif inputs.was_pressed(configs.COLORBLIND_TOGGLE):
+                configs.COLORBLIND_MODE = not configs.COLORBLIND_MODE
+                colors.load(colorblind=configs.COLORBLIND_MODE)
+                sprites.clear_cache()
             elif inputs.was_pressed(configs.ALL_MOVE_KEYS):
                 if inputs.was_pressed(configs.MOVE_LEFT):
                     direction = (-1, 0)
