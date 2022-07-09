@@ -200,6 +200,36 @@ class Potion(Entity):
         return super().copy(dest=dest or Potion(self.color_id))
 
 
+class WhatHappened:
+
+    def __init__(self):
+        self.moved: typing.Set[Entity] = set()
+        self.crushed: typing.Set[Entity] = set()
+        self.killed: typing.Set[Entity] = set()
+        self.consumed: typing.Set[Entity] = set()
+        self.colored: typing.Set[Entity] = set()
+        self.turned: typing.Set[Entity] = set()
+
+    def __repr__(self):
+        l = []
+        if self.moved:
+            l.append(f"moved:    {self.moved}")
+        if self.crushed:
+            l.append(f"crushed:  {self.crushed}")
+        if self.killed:
+            l.append(f"killed:   {self.killed}")
+        if self.consumed:
+            l.append(f"consumed: {self.consumed}")
+        if self.colored:
+            l.append(f"colored:  {self.colored}")
+        if self.turned:
+            l.append(f"turned:   {self.turned}")
+        if len(l) > 0:
+            l.insert(0, "")
+        delim = '\n\t'
+        return f"{type(self).__name__}({delim.join(l)})"
+
+
 class State:
 
     def __init__(self, name, step=0, prev=None):
@@ -208,12 +238,20 @@ class State:
         self.prev: typing.Optional['State'] = prev
         self.level: typing.Dict[typing.Tuple[int, int], typing.List[Entity]] = {}
 
+        self.what_was = WhatHappened()  # note: not copied
+
     def copy(self) -> 'State':
         res = State(self.name, step=self.step, prev=self.prev)
         for xy in self.level:
             for e in self.level[xy]:
                 res.add_entity(xy, e.copy())
         return res
+
+    def get_xy(self, ent):
+        # TODO this is real bad
+        for xy in self.all_entity_positions(cond=lambda _e: _e == ent):
+            return xy
+        return None
 
     def add_entity(self, xy, ent):
         if xy not in self.level:
@@ -229,8 +267,10 @@ class State:
                 del self.level[xy]
 
     def move_entity(self, from_xy, to_xy, entity):
-        self.remove_entity(from_xy, entity)
-        self.add_entity(to_xy, entity)
+        if from_xy != to_xy:
+            self.remove_entity(from_xy, entity)
+            self.add_entity(to_xy, entity)
+            self.what_was.moved.add(entity)
 
     def all_entities_at(self, xy):
         if xy in self.level:
@@ -311,20 +351,25 @@ class State:
                     if self.try_to_push_recursively(dest_xy, player_dir):
                         self.move_entity(xy, dest_xy, p)
                         success = True
-        if success:
-            for p, _ in self.all_entities_with_type(sprites.EntityID.PLAYER):
+
+        for p, _ in self.all_entities_with_type(sprites.EntityID.PLAYER):
+            if p.direction != player_dir:
                 p.set_direction(player_dir)
+                self.what_was.turned.add(p)
+
         return success
 
     def _remove_crushed_things(self):
         crushed = []
-        for e, xy in self.all_entities_with_type(sprites.EntityID.all_crushables()):
+        for (e, xy) in self.all_entities_with_type(sprites.EntityID.all_crushables()):
             for e2 in self.all_entities_at(xy):
                 if e2 != e and e2.is_solid() and e2.color_id != e.color_id:
                     crushed.append((e, xy))
                     break
-        for e_xy in crushed:
-            self.remove_entity(e_xy[1], e_xy[0])
+        for (e, xy) in crushed:
+            self.remove_entity(xy, e)
+            self.what_was.crushed.add(e)
+            self.what_was.killed.add(e)
 
     def _handle_direct_collisions(self, enemies_have_moved):
         types_we_care_about = (sprites.EntityID.PLAYER, sprites.EntityID.POTION) + sprites.EntityID.all_enemies()
@@ -344,6 +389,7 @@ class State:
                 for pot in potions:
                     if e.color_id != pot.color_id:
                         e.color_id = pot.color_id
+                        self.what_was.colored.add(e)
                         used_potion = True
                     if pot.color_id == orig_color:
                         any_pot_had_orig_color = True
@@ -354,6 +400,7 @@ class State:
             if used_potion:
                 for pot in potions:
                     self.remove_entity(xy, pot)
+                    self.what_was.consumed.add(pot)
 
             # handle collisions with enemies
             for p in players:
@@ -361,6 +408,7 @@ class State:
                     if p.color_id != e.color_id:
                         if enemies_have_moved or utils.add(p.direction, e.direction) == (0, 0):
                             self.remove_entity(xy, p)
+                            self.what_was.killed.add(p)
 
     def _turn_enemies(self):
         for e, xy in list(self.all_entities_with_type(sprites.EntityID.all_enemies())):
@@ -368,7 +416,9 @@ class State:
             dest_xy = utils.add(xy, e_dir)
             if self.is_solid(dest_xy, for_color_id=e.color_id):
                 e_dir = utils.sub((0, 0), e_dir)
-                e.set_direction(e_dir)
+                if e.direction != e_dir:
+                    e.set_direction(e_dir)
+                    self.what_was.turned.add(e)
 
     def _move_enemies(self):
         for e, xy in list(self.all_entities_with_type(sprites.EntityID.all_enemies())):
@@ -383,8 +433,7 @@ class State:
         res.step += 1
 
         # move player
-        if not res._try_to_move_player(player_dir):
-            return self  # can't move that way
+        res._try_to_move_player(player_dir)
 
         # check for things player just crushed
         res._remove_crushed_things()

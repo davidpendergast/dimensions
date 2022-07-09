@@ -111,6 +111,7 @@ class Game:
                 old_state = state
                 state = old_state.get_next(direction)
                 renderer.set_state(state, prev=old_state)
+                print(f"step={state.step}:\t{state.what_was}")
                 sounds.play("box_move")
 
             screen = pygame.display.get_surface()
