@@ -98,7 +98,9 @@ class AnimatedLevelRenderer(LevelRenderer):
             interp = (cur_time - self.prev_state_time) / self.trans_time
 
             for e in cur_ents:
-                if e not in old_ents:
+                if e.is_wall():
+                    walls.append((e, cur_ents[e]))
+                elif e not in old_ents:
                     nonwalls.append((e, cur_ents[e]))  # newly spawned?
                 elif cur_ents[e] != old_ents[e]:
                     xy_interp = utils.interpolate(old_ents[e], cur_ents[e], interp, rounded=False)

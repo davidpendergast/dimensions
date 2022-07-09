@@ -389,7 +389,7 @@ class State:
                         break
             else:
                 crushed.append((e, xy))
-                
+
         for (e, xy) in crushed:
             self.remove_entity(xy, e)
             self.what_was.crushed.add(e)
