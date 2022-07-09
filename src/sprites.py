@@ -35,11 +35,11 @@ class EntityID:
     def all_solids():
         return (EntityID.WALL, EntityID.BOX)
 
+
 def load():
     global SHEET, BASE_SPRITES
     img_path = utils.asset_path("assets/assets.png")
-    SHEET = pygame.image.load(img_path).convert()
-    SHEET.set_colorkey((0, 0, 0))
+    SHEET = pygame.image.load(img_path).convert_alpha()
 
     def imgs(xs, y, w=16, h=16):
         if isinstance(xs, int):
@@ -87,7 +87,7 @@ def _get_sprite(key, nocache=False):
                                            EntityID.V_WALKER, EntityID.SNEK):
             sprite = pygame.transform.flip(sprite, True, False)
 
-        sprite = _recolor_fast(sprite, colors.get_color(color_id))
+        sprite = _recolor_slow(sprite, (255, 255, 255), colors.get_color(color_id))
 
         if sprite.get_size() != size:
             sprite = pygame.transform.scale(sprite, (size, size))
