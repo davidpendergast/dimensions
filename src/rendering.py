@@ -89,6 +89,32 @@ class AnimatedLevelRenderer(LevelRenderer):
         self.spin_hz = 1
         self.fancy_radius = 0.25
 
+        self.smoothing = True
+        self.smooth_vel = 1 / self.trans_time  # cells / sec
+        self._last_rendered_positions = {}
+
+    def draw_entity_at(self, ent, surf, xy):
+        xy_to_use = xy
+        if not self.smoothing or ent not in self._last_rendered_positions:
+            pass
+        else:
+            cur_time = inputs.get_time()
+            last_xy, last_time = self._last_rendered_positions[ent]
+            if last_time == cur_time:
+                # not good, means we're drawing the same entity multiple times per frame
+                pass
+            else:
+                d = utils.dist(last_xy, xy)
+                if d < self.smooth_vel * (cur_time - last_time) or d > self.smooth_vel * self.trans_time * 2:
+                    pass
+                else:
+                    v = utils.sub(xy, last_xy)
+                    v = utils.set_length(v, self.smooth_vel * (cur_time - last_time))
+                    xy_to_use = utils.add(last_xy, v)
+
+        super().draw_entity_at(ent, surf, xy_to_use)
+        self._last_rendered_positions[ent] = xy_to_use, inputs.get_time()
+
     def get_interp(self, cur_time=None):
         cur_time = inputs.get_time() if cur_time is None else cur_time
         if cur_time > self.prev_state_time + self.trans_time or self.prev_state is None:

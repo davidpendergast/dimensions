@@ -1,3 +1,5 @@
+import math
+
 import configs
 
 import sys
@@ -32,6 +34,41 @@ def bound(t, lower, upper):
 
 def round(t):
     return tuple(round(i) for i in t)
+
+
+def dist_sq(t1, t2):
+    d = 0
+    for i1, i2 in zip(t1, t2):
+        d += (i2 - i1) * (i2 - i1)
+    return d
+
+
+def dist(t1, t2):
+    return math.sqrt(dist_sq(t1, t2))
+
+
+def mag_sq(t1):
+    d = 0
+    for i in t1:
+        d += i * i
+    return d
+
+
+def mag(t):
+    return math.sqrt(mag_sq(t))
+
+
+def set_length(t, length):
+    m = mag(t)
+    if len(t) == 0:
+        return ()
+    elif m == 0:
+        # you get (l, 0, 0, 0, 0, ...)
+        return tuple([length] + [0] * (len(t) - 1))
+    else:
+        return scale(t, length / m)
+
+
 
 
 def rect_contains(rect, xy) -> bool:
