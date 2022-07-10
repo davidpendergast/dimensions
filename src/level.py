@@ -346,37 +346,62 @@ class State:
         if not self.is_in_bounds(xy):
             return True
         for e in self.all_entities_at(xy):
-            if e.is_solid() and (for_color_id is None or e.color_id != for_color_id):
+            if e.is_solid() and (for_color_id is None or colors.can_interact(for_color_id, e.color_id)):
                 return True
         return False
 
-    def is_pushable(self, xy):
+    def is_pushable(self, xy, pushing_color_id):
+        if not self.is_in_bounds(xy):
+            return False
+        for e in self.all_entities_at(xy):
+            if e.is_solid() and not e.is_pushable() and colors.can_interact(pushing_color_id, e.color_id):
+                return False
+        return True
+
+    def is_enterable(self, xy, with_color_id):
         if not self.is_in_bounds(xy):
             return False
         for e in self.all_entities_at(xy):
             if e.is_solid() and not e.is_pushable():
-                return False
+                return not colors.can_interact(with_color_id, e.color_id)
         return True
 
-    def try_to_push_recursively(self, start_xy, direction) -> bool:
+    def can_be_pushed_into_cell_without_pushing_anything_else(self, e: Entity, xy):
+        if e.is_crushable():
+            return True
+        elif self.is_solid(xy, e.color_id):
+            return False
+        else:
+            return True
+
+    def try_to_push_cell_contents_recursively(self, start_xy, direction, pushing_color_id) -> bool:
+        """returns: whether the pusher can enter this cell"""
         dest_xy = utils.add(start_xy, direction)
-        if not self.is_solid(start_xy):
+        if not self.is_solid(start_xy, pushing_color_id):
+            # pusher can definitely enter this cell
+            # push anything inside it out (which may crush them)
             for e in list(self.all_entities_at(start_xy)):
-                if e.is_pushable():
+                if e.is_pushable() and colors.can_interact(pushing_color_id, e.color_id):
                     self.move_entity(start_xy, dest_xy, e, ignore_bounds=e.is_crushable())
             return True
-        elif not self.is_pushable(start_xy):
-            return False  # something solid that can't be pushed
-        else:
-            # there's something solid, but pushable there
-            can_push = self.try_to_push_recursively(dest_xy, direction)
-            if not can_push:
-                return False
-            else:
+        elif self.is_pushable(start_xy, pushing_color_id):
+            # we can only move here iff we can push the contents out of the way
+            colors_in_start_xy = set(e.color_id for e in self.all_entities_at(start_xy) if e.is_solid())
+            if len(colors_in_start_xy) != 1:
+                # based on the rules / entities available, there should only be one color in this cell if we're
+                # in this state.
+                raise ValueError(f"pushing a number of solid colors != 1?: {[e for e in self.all_entities_at(start_xy)]}")
+            if self.try_to_push_cell_contents_recursively(dest_xy, direction, list(colors_in_start_xy)[0]):
+                # we can enter, woo
                 for e in list(self.all_entities_at(start_xy)):
-                    if e.is_solid() and e.is_pushable():
-                        self.move_entity(start_xy, dest_xy, e)
+                    if e.is_pushable() and colors.can_interact(pushing_color_id, e.color_id):
+                        self.move_entity(start_xy, dest_xy, e)  # should never be going out of bounds here
                 return True
+            else:
+                return False  # couldn't perform the push
+        else:
+            # it's solid and not pushable, can't enter
+            return False
 
     def _try_to_move_player(self, player_dir):
         success = False
@@ -390,7 +415,7 @@ class State:
                     success = True
                 else:
                     # try to push
-                    if self.try_to_push_recursively(dest_xy, player_dir):
+                    if self.try_to_push_cell_contents_recursively(dest_xy, player_dir, p.color_id):
                         self.move_entity(xy, dest_xy, p)
                         success = True
 

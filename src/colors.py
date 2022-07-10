@@ -68,3 +68,12 @@ def interpolate(c1, c2, a, steps=None):
     else:
         diff = tuple(round(d * a) for d in diff)
     return utils.bound(utils.add(c1, diff), 0, 255)
+
+
+def can_interact(c1, c2):
+    if c1 == BROWN_ID or c2 == BROWN_ID:
+        return True  # brown can always push or be pushed
+    elif c1 == -1 or c2 == -1:
+        return False  # this means out of bounds
+    else:
+        return c1 != c2

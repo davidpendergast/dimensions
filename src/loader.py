@@ -31,7 +31,7 @@ def make_demo_state2(dims):
             if x == 0 or y == 0 or x == dims[0] - 1 or y == dims[1] - 1 or random.random() < 0.2:
                 state.add_entity(xy, level.Wall())
             elif random.random() < 0.2:
-                if random.random() < 0.05:
+                if random.random() < 0.8:
                     box_color_id = random.randint(0, colors.YELLOW_ID)
                 else:
                     box_color_id = colors.BROWN_ID
