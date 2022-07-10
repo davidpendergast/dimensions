@@ -1,4 +1,5 @@
 import src.utils as utils
+import random
 
 
 BLACK_ID = -1
@@ -59,6 +60,15 @@ def get_color(color_id):
         return COLORS[color_id]
     else:
         return 0, 0, 0
+
+
+def rand_color_id(include_white=False, include_brown=False):
+    c_list = [c for c in range(RED_ID, YELLOW_ID + 1)]
+    if include_white:
+        c_list.append(WHITE_ID)
+    if include_brown:
+        c_list.append(BROWN_ID)
+    return random.choice(c_list)
 
 
 def interpolate(c1, c2, a, steps=None):

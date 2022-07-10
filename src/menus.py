@@ -8,6 +8,7 @@ import src.colors as colors
 import src.utils as utils
 import src.inputs as inputs
 import src.sounds as sounds
+import src.sprites as sprites
 
 import src.level as level
 import src.loader as loader
@@ -173,6 +174,9 @@ class MainMenu(Menu):
             TextRenderer("levels", "L"),
         ]
 
+        self.p_color_id = colors.rand_color_id()
+        self.e_color_id = colors.rand_color_id()
+
     def _activate_option(self, idx=None):
         if idx is None:
             idx = self._selected_opt
@@ -183,11 +187,10 @@ class MainMenu(Menu):
             self.manager.set_menu(LevelSelectMenu())
 
     def update(self, dt):
+        old_selection = self._selected_opt
         if inputs.was_pressed(configs.MOVE_UP):
-            sounds.play(sounds.PLAYER_MOVED)
             self._selected_opt -= 1
         if inputs.was_pressed(configs.MOVE_DOWN):
-            sounds.play(sounds.PLAYER_MOVED)
             self._selected_opt += 1
         self._selected_opt %= len(self._options)
 
@@ -200,6 +203,11 @@ class MainMenu(Menu):
                         self._selected_opt = idx
                 if inputs.did_click(btn=1, in_rect=rect):
                     self._activate_option(idx)
+
+        if self._selected_opt != old_selection:
+            self.p_color_id = colors.rand_color_id()
+            self.e_color_id = colors.rand_color_id()
+            sounds.play(sounds.PLAYER_MOVED)
 
         if inputs.was_pressed(configs.ENTER):
             self._activate_option()
@@ -223,6 +231,12 @@ class MainMenu(Menu):
         for opt in self._options:
             opt.draw(screen, (cx - opt.get_size()[0] // 2, options_y))
             options_y += opt.get_size()[1] + self._spacing
+
+        player_spr = sprites.get_sprite(sprites.EntityID.BIG_PLAYER, 64 * 3, self.p_color_id)
+        enemy_spr = sprites.get_sprite(sprites.EntityID.BIG_V_WALKER, 64 * 3, self.e_color_id, (-1, 0))
+
+        screen.blit(player_spr, (screen.get_width() / 4 - player_spr.get_width() / 2, title_cy + self._title_text.get_size()[1]))
+        screen.blit(enemy_spr, (3 * screen.get_width() / 4 - enemy_spr.get_width() / 2, title_cy + self._title_text.get_size()[1]))
 
 
 class IntroCutsceneMenu(Menu):
@@ -251,7 +265,7 @@ class PlayingLevelMenu(Menu):
 
     def update(self, dt):
         if inputs.was_pressed(configs.RESET):
-            if inputs.is_held(pygame.K_LSHIFT):  # TODO Debug only
+            if inputs.is_held(pygame.K_LSHIFT):  # TODO debug only
                 self.initial_state = loader.make_demo_state2((13, 9))
 
             self.state = self.initial_state.copy()

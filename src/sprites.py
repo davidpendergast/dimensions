@@ -20,6 +20,8 @@ class EntityID:
     GOAL = "g"
 
     EXPLOSION = "e"
+    BIG_PLAYER = "PBIG"
+    BIG_V_WALKER = "VBIG"
 
     @staticmethod
     def all_enemies():
@@ -61,6 +63,8 @@ def load():
     BASE_SPRITES[EntityID.POTION] = imgs(0, 48)
     BASE_SPRITES[EntityID.BOX] = imgs(48, 0)
     BASE_SPRITES[EntityID.EXPLOSION] = imgs((64, 80, 96, 112), (0, 16, 32))
+    BASE_SPRITES[EntityID.BIG_PLAYER] = imgs(0, 64, w=64, h=64)
+    BASE_SPRITES[EntityID.BIG_V_WALKER] = imgs(64, 64, w=64, h=64)
 
 
 def clear_cache():
