@@ -1,7 +1,8 @@
-
+import os.path
 import platform
 import pygame
 
+VERSION = "1.0.0"
 WEB_MODE = platform.system().lower() == "emscripten"
 
 COLORBLIND_MODE = True
@@ -26,3 +27,7 @@ ESCAPE = (pygame.K_ESCAPE,)
 UNDO = (pygame.K_z, pygame.K_BACKSPACE)
 RESET = (pygame.K_r, pygame.K_RETURN)
 PAUSE = (pygame.K_ESCAPE,)
+
+# debug stuff
+IS_DEBUG = not WEB_MODE and os.path.exists(".gitignore")
+DEBUG_FAKE_LEVELS = True

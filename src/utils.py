@@ -5,6 +5,7 @@ import configs
 import sys
 import os
 import typing
+import json
 
 
 def asset_path(filepath):
@@ -103,5 +104,24 @@ def interpolate(t1, t2, a, rounded=False):
         return tuple(i1 + a * (i2 - i1) for i1, i2 in zip(t1, t2))
 
 
+def copy_json(blob):
+    return json.loads(json.dumps(blob))  # pog
+
+
 def contains_type(iterable, types):
     return any(x for x in iterable if isinstance(x, types))
+
+
+def get_dict_type_coercer(key_type, val_type):
+    def _coerce(d):
+        keys_to_del = set()
+        for k in d:
+            if not isinstance(k, key_type):
+                keys_to_del.add(k)
+            elif not isinstance(d[k], val_type):
+                keys_to_del.add(k)
+        if len(keys_to_del) > 0:
+            return {k: d[k] for k in d if k not in keys_to_del}
+        else:
+            return d
+    return _coerce

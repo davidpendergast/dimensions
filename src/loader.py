@@ -1,5 +1,86 @@
+import os
+import json
+import random
+import string
+
+import configs
 import src.level as level
 import src.colors as colors
+import src.utils as utils
+import src.persistentdata as pd
+
+
+_ORDERED_LEVELS_FROM_DISK = []
+_NAME_TO_LEVEL = {}
+
+LEVEL_COMPLETIONS_KEY = "completed_levels"
+
+
+def load_levels():
+    _ORDERED_LEVELS_FROM_DISK.clear()
+    _NAME_TO_LEVEL.clear()
+
+    if configs.IS_DEBUG and configs.DEBUG_FAKE_LEVELS:
+        for _ in range(25):
+            l = make_demo_state2()
+            l.name = "".join(random.choice(string.ascii_lowercase) for _2 in range(5))
+            _ORDERED_LEVELS_FROM_DISK.append(l)
+            _NAME_TO_LEVEL[l.name] = l
+    else:
+        base_path = utils.asset_path("assets/levels")
+        for fname in sorted(os.listdir(base_path)):
+            if fname.endswith(".json"):
+                filepath = os.path.join(base_path, fname)
+                with open(filepath, 'r') as f:
+                    try:
+                        blob = json.load(f)  # TODO not sure if this works on web (I think it should though)
+
+                        l = level.from_json(blob)
+                        _ORDERED_LEVELS_FROM_DISK.append(l)
+                        _NAME_TO_LEVEL[l.name] = l
+                        print(f"INFO: loaded {filepath}")
+                    except Exception as e:
+                        print(f"ERROR: failed to load: {filepath}")
+                        raise e
+
+
+def num_levels() -> int:
+    return len(_ORDERED_LEVELS_FROM_DISK)
+
+
+def get_level_by_idx(idx) -> level.State:
+    return _ORDERED_LEVELS_FROM_DISK[idx]
+
+
+def get_level_by_name(name) -> level.State:
+    return _NAME_TO_LEVEL[name]
+
+
+def idx_of(name: str) -> int:
+    for idx, lvl in enumerate(_ORDERED_LEVELS_FROM_DISK):
+        if lvl.name == name:
+            return idx
+    return -1
+
+
+def all_levels():
+    for l in _ORDERED_LEVELS_FROM_DISK:
+        yield l
+
+
+def is_completed(name) -> int:
+    completed_levels = pd.get_data(LEVEL_COMPLETIONS_KEY, coercer=utils.get_dict_type_coercer(str, int), or_else={})
+    if name in completed_levels:
+        return completed_levels[name]
+    else:
+        return 0
+
+
+def set_completed(name, steps):
+    completed_levels = pd.get_data(LEVEL_COMPLETIONS_KEY, coercer=utils.get_dict_type_coercer(str, int), or_else={})
+    if name not in completed_levels or completed_levels[name] > steps:
+        completed_levels[name] = steps
+        pd.set_data(LEVEL_COMPLETIONS_KEY, completed_levels)
 
 
 def make_demo_state():

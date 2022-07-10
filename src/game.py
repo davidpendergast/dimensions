@@ -7,6 +7,7 @@ import src.level as level
 import src.colors as colors
 import src.menus as menus
 import src.rendering as rendering
+import src.loader as loader
 
 import src.sprites as sprites
 import src.sounds as sounds
@@ -35,10 +36,11 @@ class Game:
         dt = 0
         running = True
 
+        colors.load(colorblind=configs.COLORBLIND_MODE)
         sprites.load()
         sounds.load()
-        colors.load(colorblind=configs.COLORBLIND_MODE)
         sounds.play_song(sounds.MAIN_SONG)
+        loader.load_levels()
 
         self.menu_manager = menus.MenuManager(menus.MainMenu())
 
@@ -65,7 +67,6 @@ class Game:
             self.menu_manager.update(dt)
 
             screen = pygame.display.get_surface()
-
             self.menu_manager.draw(screen)
 
             pygame.display.flip()
