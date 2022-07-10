@@ -21,6 +21,7 @@ PLAYER_SKIPPED = "move"
 ENEMY_KILLED = "synth"
 POTION_CRUSHED = "click"
 POTION_CONSUMED = "powerup"
+RESET_LEVEL = "synth"
 
 
 def load():
@@ -76,7 +77,7 @@ def play_song(name, loops=-1):
         filepath = os.path.join(base_path, _SONGS[name])
         try:
             pygame.mixer.music.load(filepath)
-            pygame.mixer.music.set_volume(configs.SONG_VOLUME)
+            pygame.mixer.music.set_volume(configs.SONG_VOLUME if not configs.SONG_MUTED else 0)
             pygame.mixer.music.play(loops=loops)
         except (IOError, pygame.error):
             print(f"ERROR: failed to load long {filepath}")

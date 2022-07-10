@@ -8,7 +8,7 @@ COLORBLIND_MODE = True
 COLORBLIND_TOGGLE = (pygame.K_c,)
 
 SONG_VOLUME = 1.0
-SONG_MUTED = False
+SONG_MUTED = True  # TODO unmute
 
 SOUND_VOLUME = 0.2
 SOUND_MUTED = False

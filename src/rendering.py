@@ -153,15 +153,17 @@ class AnimatedLevelRenderer(LevelRenderer):
                     nonwalls.append((e, cur_ents[e]))  # it didn't move
             for e in old_ents:
                 if e not in cur_ents:
+                    # NOTE: we're adding a Surface to nonwalls here (not an Entity)
+                    # be careful~
                     spr = sprites.get_animated_sprite(sprites.EntityID.EXPLOSION, self.cell_size, interp,
                                                       color_id=e.color_id)
                     nonwalls.append((spr, utils.add(old_ents[e], (0, 0.001))))  # it died, render an explosion
 
-        walls.sort(key=lambda w_xy: (w_xy[1][1], w_xy[1][0], w_xy[0]))
+        walls.sort(key=lambda w_xy: (w_xy[1][1], w_xy[1][0], hash(w_xy[0])))
         for w_xy in walls:
             yield w_xy
 
-        nonwalls.sort(key=lambda e_xy: (e_xy[1][1], e_xy[1][0], e_xy[0]))
+        nonwalls.sort(key=lambda e_xy: (e_xy[1][1], e_xy[1][0], hash(e_xy[0])))
         for e_xy in nonwalls:
             yield e_xy
 

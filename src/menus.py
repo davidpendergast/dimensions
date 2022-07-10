@@ -9,12 +9,17 @@ import src.utils as utils
 import src.inputs as inputs
 import src.sounds as sounds
 
+import src.level as level
+import src.loader as loader
+import src.rendering as rendering
+
 
 class Menu:
 
-    def __init__(self):
+    def __init__(self, bg_color=(0, 0, 0)):
         self.manager: 'MenuManager' = None
         self.elapsed_time = 0
+        self.bg_color = bg_color
 
     def draw(self, screen):
         pass
@@ -41,17 +46,19 @@ class MenuManager:
             self.next_menu = None
         else:
             self.next_menu = menu
-            self.cur_menu.manager = self
 
     def update(self, dt):
         if self.next_menu is not None:
             self.cur_menu = self.next_menu
+            self.cur_menu.manager = self
             self.next_menu = None
 
         self.cur_menu.update(dt)
         self.cur_menu.elapsed_time += dt
 
     def draw(self, screen):
+        if self.cur_menu.bg_color is not None:
+            screen.fill(self.cur_menu.bg_color)
         self.cur_menu.draw(screen)
 
 
@@ -223,10 +230,14 @@ class IntroCutsceneMenu(Menu):
     def __init__(self):
         super().__init__()
 
+    def update(self, dt):
+        # TODO
+        self.manager.set_menu(PlayingLevelMenu(loader.make_demo_state2((13, 9))))
+
 
 class LevelSelectMenu(Menu):
 
-    def __init__(self):
+    def __init__(self, selected_id=None):
         super().__init__()
 
 
@@ -236,4 +247,37 @@ class PlayingLevelMenu(Menu):
         super().__init__()
         self.initial_state = initial_state
         self.state = self.initial_state.copy()
+        self.renderer = rendering.AnimatedLevelRenderer(self.state, cell_size=48)
+
+    def update(self, dt):
+        if inputs.was_pressed(configs.RESET):
+            if inputs.is_held(pygame.K_LSHIFT):  # TODO Debug only
+                self.initial_state = loader.make_demo_state2((13, 9))
+
+            self.state = self.initial_state.copy()
+            self.renderer.set_state(self.state, prev=None)
+            sounds.play(sounds.RESET_LEVEL)
+        elif inputs.was_pressed(configs.ALL_MOVE_KEYS):
+            if inputs.was_pressed(configs.MOVE_LEFT):
+                direction = (-1, 0)
+            elif inputs.was_pressed(configs.MOVE_UP):
+                direction = (0, -1)
+            elif inputs.was_pressed(configs.MOVE_RIGHT):
+                direction = (1, 0)
+            elif inputs.was_pressed(configs.MOVE_DOWN):
+                direction = (0, 1)
+            else:
+                direction = (0, 0)
+            old_state = self.state
+            self.state = old_state.get_next(direction)
+            self.renderer.set_state(self.state, prev=old_state)
+            self.state.what_was.play_sounds()
+            print(f"step={self.state.step}:\t{self.state.what_was}")
+        if inputs.was_pressed(configs.ESCAPE):
+            self.manager.set_menu(LevelSelectMenu(selected_id=self.state.name))
+
+    def draw(self, screen):
+        self.renderer.get_offset_for_centering(screen, and_apply=True)
+        self.renderer.update()
+        self.renderer.draw(screen)
 
