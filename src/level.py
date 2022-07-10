@@ -337,11 +337,6 @@ class State:
                 if cond is None or cond(e):
                     yield e, xy
 
-    def is_empty(self, xy):
-        for _ in self.all_entities_at(xy):
-            return True
-        return False
-
     def is_solid(self, xy, for_color_id=None):
         if not self.is_in_bounds(xy):
             return True
@@ -357,22 +352,6 @@ class State:
             if e.is_solid() and not e.is_pushable() and colors.can_interact(pushing_color_id, e.color_id):
                 return False
         return True
-
-    def is_enterable(self, xy, with_color_id):
-        if not self.is_in_bounds(xy):
-            return False
-        for e in self.all_entities_at(xy):
-            if e.is_solid() and not e.is_pushable():
-                return not colors.can_interact(with_color_id, e.color_id)
-        return True
-
-    def can_be_pushed_into_cell_without_pushing_anything_else(self, e: Entity, xy):
-        if e.is_crushable():
-            return True
-        elif self.is_solid(xy, e.color_id):
-            return False
-        else:
-            return True
 
     def try_to_push_cell_contents_recursively(self, start_xy, direction, pushing_color_id) -> bool:
         """returns: whether the pusher can enter this cell"""
@@ -517,6 +496,9 @@ class State:
         res._handle_direct_collisions(True)
 
         return res
+
+    def get_prev(self):
+        return self.prev
 
     def render_level(self, surf: pygame.Surface, pos, cellsize=32):
         for xy in self.level:

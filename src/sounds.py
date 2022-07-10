@@ -21,7 +21,9 @@ PLAYER_SKIPPED = "move"
 ENEMY_KILLED = "synth"
 POTION_CRUSHED = "click"
 POTION_CONSUMED = "powerup"
+
 RESET_LEVEL = "synth"
+UNDO_LEVEL = "synth"
 
 
 def load():

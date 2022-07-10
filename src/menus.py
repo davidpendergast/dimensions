@@ -324,6 +324,13 @@ class PlayingLevelMenu(Menu):
             self.state = self.initial_state.copy()
             self.renderer.set_state(self.state, prev=None)
             sounds.play(sounds.RESET_LEVEL)
+        elif inputs.was_pressed(configs.UNDO):
+            prev = self.state.get_prev()
+            if prev is not None:
+                old_cur = self.state
+                self.state = prev.copy()  # probably don't *need* to copy here, but eh
+                self.renderer.set_state(self.state, prev=old_cur)
+            sounds.play(sounds.UNDO_LEVEL)
         elif inputs.was_pressed(configs.ALL_MOVE_KEYS):
             if inputs.was_pressed(configs.MOVE_LEFT):
                 direction = (-1, 0)
