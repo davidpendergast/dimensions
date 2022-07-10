@@ -13,6 +13,7 @@ import src.sprites as sprites
 import src.level as level
 import src.loader as loader
 import src.rendering as rendering
+import src.textrendering as tr
 
 
 class Menu:
@@ -68,115 +69,18 @@ class MenuManager:
         self.cur_menu.draw(screen)
 
 
-_CACHED_FONTS = {}  # (name, size) -> Font
-_SIZE_MAPPING = {"S": 16, "M": 24, "L": 32, "H": 64}
-
-
-def load_font(name, size) -> pygame.font.Font:
-    if isinstance(size, str):
-        size = _SIZE_MAPPING[size.upper()]
-    key = name, size
-    if key not in _CACHED_FONTS:
-        filepath = utils.asset_path(f"assets/{name}.ttf")
-        _CACHED_FONTS[key] = pygame.font.Font(filepath, size)
-    return _CACHED_FONTS[key]
-
-
-class TextRenderer:
-
-    def __init__(self, text: str, size: typing.Union[int, str], color=(255, 255, 255), bg_color=None, font_name="alagard", y_kerning=0):
-        self._text = text
-        self._text_size = size
-        self._text_color = color
-        self._bg_color = bg_color
-        self._text_font_name = font_name
-        self._text_y_kerning = y_kerning
-
-        # cached stuff
-        self._text_font = load_font(font_name, size)
-        self._cached_text_surfaces = None
-
-        self._last_drawn_at_rect = None
-
-    def _refresh(self, force=False):
-        if force:
-            self._cached_text_surfaces = None
-            self._text_font = None
-
-        if self._cached_text_surfaces is None or self._text_font is None:
-            self._text_font = load_font(self._text_font_name, self._text_size)
-            self._cached_text_surfaces = []
-            for line in self._text.split("\n"):
-                surf = self._text_font.render(line, False, self._text_color, self._bg_color)
-                self._cached_text_surfaces.append(surf)
-
-    def get_size(self):
-        self._refresh()
-        w, h = 0, 0
-        for line_img in self._cached_text_surfaces:
-            w = max(w, line_img.get_width())
-            if h > 0:
-                h += self._text_y_kerning
-            h += line_img.get_height()
-        return w, h
-
-    def draw(self, dest_surf: pygame.Surface, xy, center_lines=False):
-        self._refresh()
-        x, y = xy
-        w, h = self.get_size()
-        for line_img in self._cached_text_surfaces:
-            if center_lines:
-                x_to_use = int(x + w / 2 - line_img.get_width() / 2)
-            else:
-                x_to_use = x
-            dest_surf.blit(line_img, (x_to_use, y))
-            y += line_img.get_height() + self._text_y_kerning
-
-        self._last_drawn_at_rect = (x, xy[1], w, h)
-
-    def draw_with_center_at(self, dest_surf, xy, center_lines=True):
-        self._refresh()
-        w, h = self.get_size()
-        xy_to_use = xy[0] - w // 2, xy[1] - h // 2
-        self.draw(dest_surf, xy_to_use, center_lines=center_lines)
-
-    def get_last_drawn_rect(self):
-        return self._last_drawn_at_rect
-
-    def set_text(self, new_text):
-        if new_text != self._text:
-            self._text = new_text
-            self._cached_text_surfaces = None
-
-    def get_text(self):
-        return self._text
-
-    def set_color(self, color, bg_color="nochange"):
-        if self._text_color != color or (bg_color != "nochange" and bg_color != self._bg_color):
-            self._text_color = color
-            self._bg_color = self._bg_color if bg_color == "nochange" else bg_color
-            self._cached_text_surfaces = None
-            self._text_font = None
-
-    def set_size(self, size):
-        if self._text_size != size:
-            self._text_size = size
-            self._cached_text_surfaces = None
-            self._text_font = None
-
-
 class MainMenu(Menu):
 
     def __init__(self):
         super().__init__()
 
-        self._title_text = TextRenderer("Alien\nKnightmare", 'H', colors.get_color(colors.WHITE_ID))
+        self._title_text = tr.TextRenderer("Alien\nKnightmare", 'H', colors.get_color(colors.WHITE_ID), alignment=0)
         self._spacing = 16
 
         self._selected_opt = 0
         self._options = [
-            TextRenderer("start", "L"),
-            TextRenderer("levels", "L"),
+            tr.TextRenderer("start", "L", alignment=0),
+            tr.TextRenderer("levels", "L", alignment=0),
         ]
 
         self.p_color_id = colors.rand_color_id()
@@ -187,7 +91,7 @@ class MainMenu(Menu):
             idx = self._selected_opt
         sounds.play(sounds.POTION_CONSUMED)
         if idx == 0:
-            self.manager.set_menu(PlayingLevelMenu(loader.make_demo_state2((13, 9))), cool_transition=True)
+            self.manager.set_menu(PlayingLevelMenu(loader.make_demo_state2()), cool_transition=True)
         elif idx == 1:
             self.manager.set_menu(LevelSelectMenu(), cool_transition=True)
 
@@ -250,7 +154,7 @@ class IntroCutsceneMenu(Menu):
         super().__init__()
 
     def update(self, dt):
-        self.manager.set_menu(PlayingLevelMenu(loader.make_demo_state2((13, 9))))
+        self.manager.set_menu(PlayingLevelMenu(loader.make_demo_state2()))
 
 
 class LevelSelectMenu(Menu):
@@ -262,10 +166,9 @@ class LevelSelectMenu(Menu):
 class TextTransitionMenu(Menu):
 
     def __init__(self, text_renderer, from_menu, to_menu, pause_time=1, fadeout_time=0.25, fadein_time=0.25,
-                 bg_color=(0, 0, 0), center_lines=True):
+                 bg_color=(0, 0, 0)):
         super().__init__()
         self.text = text_renderer
-        self.center_lines = center_lines
 
         self.from_menu = from_menu
         self.to_menu = to_menu
@@ -301,7 +204,7 @@ class TextTransitionMenu(Menu):
             self.overlay.fill(self.my_bg_color)
             if self.text is not None:
                 cxy = self.overlay.get_rect().center
-                self.text.draw_with_center_at(self.overlay, cxy, center_lines=self.center_lines)
+                self.text.draw_with_center_at(self.overlay, cxy)
 
         self.overlay.set_alpha(int(255 * opacity))
         print(f"INFO: opacity={int(255 * opacity)}")
@@ -319,7 +222,7 @@ class PlayingLevelMenu(Menu):
     def update(self, dt):
         if inputs.was_pressed(configs.RESET):
             if inputs.is_held(pygame.K_LSHIFT):  # TODO debug only
-                self.initial_state = loader.make_demo_state2((13, 9))
+                self.initial_state = loader.make_demo_state2()
 
             self.state = self.initial_state.copy()
             self.renderer.set_state(self.state, prev=None)

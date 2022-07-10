@@ -18,12 +18,11 @@ MOVE_LEFT = (pygame.K_LEFT, pygame.K_a)
 MOVE_RIGHT = (pygame.K_RIGHT, pygame.K_d)
 MOVE_UP = (pygame.K_UP, pygame.K_w)
 MOVE_DOWN = (pygame.K_DOWN, pygame.K_s)
-SKIP = (pygame.K_SPACE,)
 
-ALL_MOVE_KEYS = MOVE_LEFT + MOVE_RIGHT + MOVE_UP + MOVE_DOWN + SKIP
+ALL_MOVE_KEYS = MOVE_LEFT + MOVE_RIGHT + MOVE_UP + MOVE_DOWN
 
 ENTER = (pygame.K_RETURN,)
 ESCAPE = (pygame.K_ESCAPE,)
-UNDO = (pygame.K_z,)
-RESET = (pygame.K_r,)
+UNDO = (pygame.K_z, pygame.K_BACKSPACE)
+RESET = (pygame.K_r, pygame.K_RETURN)
 PAUSE = (pygame.K_ESCAPE,)

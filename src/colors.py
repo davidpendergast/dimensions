@@ -14,14 +14,14 @@ YELLOW_ID = 5
 BROWN_ID = 6
 
 DEFAULT_COLORS = {
-    BLACK_ID: (0, 0, 0),
-    WHITE_ID: (217, 217, 217),
-    RED_ID: (255, 0, 0),
-    GREEN_ID: (40, 255, 0),
-    BLUE_ID: (66, 99, 255),
-    PINK_ID: (255, 33, 247),
-    BROWN_ID: (234, 185, 35),
-    YELLOW_ID: (255, 246, 0),
+    BLACK_ID: ((0, 0, 0), "black"),
+    WHITE_ID: ((217, 217, 217), "white"),
+    RED_ID: ((255, 0, 0), "red"),
+    GREEN_ID: ((40, 255, 0), "green"),
+    BLUE_ID: ((66, 99, 255), "blue"),
+    PINK_ID: ((255, 33, 247), "pink"),
+    BROWN_ID: ((234, 185, 35), "brown"),
+    YELLOW_ID: ((255, 246, 0), "yellow"),
 }
 
 
@@ -36,12 +36,12 @@ def _hex_to_ints(hex_val):
 # Based on: https://lospec.com/palette-list/ibm-color-blind-safe
 # https://davidmathlogic.com/colorblind/#%23648FFF-%23725CD8-%23DC267F-%23FE6100-%23FFB000-%23D2A96A-%23FFFFFF
 COLORBLIND_COLORS = {
-    BLUE_ID: _hex_to_ints(0x648fff),
-    GREEN_ID: _hex_to_ints(0x9FF986),  # 0x785ef0),  # tweaked
-    PINK_ID: _hex_to_ints(0xdc267f),
-    RED_ID: _hex_to_ints(0xfe6100),
-    YELLOW_ID: _hex_to_ints(0xffb000),
-    BROWN_ID: _hex_to_ints(0xD2A96A)  # I added this
+    BLUE_ID: (_hex_to_ints(0x648fff), "blue"),
+    GREEN_ID: (_hex_to_ints(0x9FF986), "green"),  # 0x785ef0),  # tweaked
+    PINK_ID: (_hex_to_ints(0xdc267f), "pink"),
+    RED_ID: (_hex_to_ints(0xfe6100), "red"),
+    YELLOW_ID: (_hex_to_ints(0xffb000), "yellow"),
+    BROWN_ID: (_hex_to_ints(0xD2A96A), "brown"),  # I added this
 }
 
 
@@ -57,9 +57,19 @@ def load(colorblind=False):
 
 def get_color(color_id):
     if color_id in COLORS:
-        return COLORS[color_id]
+        return COLORS[color_id][0]
     else:
         return 0, 0, 0
+
+
+def get_color_name(color_id, caps=False):
+    res = "unknown"
+    if color_id in COLORS:
+        res = COLORS[color_id][1]
+    if caps:
+        return res[0].upper() + res[1:]
+    else:
+        return res
 
 
 def rand_color_id(include_white=False, include_brown=False):

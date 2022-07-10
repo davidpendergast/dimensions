@@ -21,7 +21,7 @@ def make_demo_state():
     return state
 
 
-def make_demo_state2(dims):
+def make_demo_state2(dims=(13, 7)):
     import random
 
     state = level.State("Demo 2")

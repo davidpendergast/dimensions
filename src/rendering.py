@@ -8,6 +8,8 @@ import src.level as level
 import src.inputs as inputs
 import src.utils as utils
 import src.sprites as sprites
+import src.colors as colors
+import src.textrendering as tr
 
 
 class LevelRenderer:
@@ -20,6 +22,15 @@ class LevelRenderer:
         self.centered = True
         self.xy_offset = (0, 0)
         self.cell_size = cell_size
+
+        self.you_died_text = None
+        self.r_to_restart_text = None
+        self.success_text = None
+
+        self.goal_text = None
+        self.dimension_text = None
+        self.in_progress_text = None
+        self.controls_text = None
 
     def set_state(self, state, prev='current'):
         if prev == 'current':
@@ -36,11 +47,12 @@ class LevelRenderer:
             self.xy_offset = offs_xy
 
     def get_offset_for_centering(self, screen: pygame.Surface, state=None, and_apply=True):
+        play_rect, *_ = self.get_play_area_and_info_rects_and_inset(screen)
         state = state or self.cur_state
         if state is not None:
             rect = utils.scale(state.get_area(), self.cell_size)
+            screen_center = utils.rect_center(play_rect)
             world_center = utils.rect_center(rect)
-            screen_center = utils.scale(screen.get_size(), 0.5)
             res = utils.sub(screen_center, world_center)
             if and_apply:
                 self.set_offset(res)
@@ -72,6 +84,108 @@ class LevelRenderer:
     def draw(self, surf):
         for ent, xy in self.all_sorted_entities_to_render():
             self.draw_entity_at(ent, surf, xy)
+
+        _, info_rect, inset = self.get_play_area_and_info_rects_and_inset(surf)
+
+        self.draw_info(surf, self.get_top_bar_rect(surf), self.get_top_bar_text(), inset=inset)
+
+        info_to_draw = self.get_info_text(line_spacing=inset)
+        if info_to_draw is not None:
+            self.draw_info(surf, info_rect, info_to_draw, bg_color=self.get_info_bg_color(), inset=inset)
+        # pygame.draw.rect(surf, (255, 0, 0), info_rect, width=1)
+
+    def get_play_area_and_info_rects_and_inset(self, surf):
+        inset = 8
+        info_h = 100
+        top_bar_rect = self.get_top_bar_rect(surf)
+        play_rect = (0, top_bar_rect[3], surf.get_width(), surf.get_height() - info_h - top_bar_rect[3])
+        info_y = play_rect[1] + play_rect[3] - inset
+        info_rect = (0, info_y, surf.get_width(), surf.get_height() - info_y)
+
+        return play_rect, info_rect, inset
+
+    def get_info_bg_color(self):
+        return (0, 0, 0)
+
+    def get_top_bar_rect(self, surf):
+        return (0, 0, surf.get_width(), 28)
+
+    def get_top_bar_text(self, sz="M"):
+        res = []
+        if self.in_progress_text is None:
+            self.in_progress_text = (
+                tr.TextRenderer("", size=sz, color=colors.get_color(colors.WHITE_ID), alignment=-1),
+                tr.TextRenderer("", size=sz, color=colors.get_color(colors.WHITE_ID), alignment=1))
+        self.in_progress_text[0].set_text(f"  Steps: {self.cur_state.step}")
+        self.in_progress_text[1].set_text(f"Level: {self.cur_state.name}  ")
+        res.append(self.in_progress_text)
+        return res
+
+    def get_info_text(self, line_spacing=4, sz="M"):
+        res = []
+
+        if not self.cur_state.is_player_alive():
+            if self.you_died_text is None:
+                self.you_died_text = tr.TextRenderer("", size=sz, color=colors.get_color(colors.RED_ID), alignment=0)
+            self.you_died_text.set_text("You died!")
+            res.append(self.you_died_text)
+            res.append(line_spacing)
+            if self.r_to_restart_text is None:
+                self.r_to_restart_text = tr.TextRenderer("", size=sz, color=colors.get_color(colors.WHITE_ID), alignment=0)
+            self.r_to_restart_text.set_text("Press [R] to restart, or [Z] to undo.")
+            res.append(self.r_to_restart_text)
+        elif self.cur_state.is_success():
+            if self.success_text is None:
+                self.success_text = tr.TextRenderer("", size=sz, color=colors.get_color(colors.GREEN_ID), alignment=0)
+            self.success_text.set_text("Success!")
+            res.append(self.success_text)
+        else:
+            if self.goal_text is None:
+                self.goal_text = tr.TextRenderer("", size=sz, color=colors.get_color(colors.WHITE_ID), alignment=0)
+            n_alive = self.cur_state.num_enemies_remaining()
+            orig_alive = self.cur_state.get_initial_state().num_enemies_remaining()
+            self.goal_text.set_text(f"Crush all enemies to win! ({(orig_alive - n_alive)}/{orig_alive})")
+            res.append(self.goal_text)
+
+            if self.dimension_text is None:
+                self.dimension_text = tr.TextRenderer("", size=sz, color=colors.get_color(colors.WHITE_ID), alignment=0)
+            cur_dim = self.cur_state.get_player_color()
+            self.dimension_text.set_text(f"You're in the {colors.get_color_name(cur_dim, caps=True)} Dimension")
+            self.dimension_text.set_color(colors.get_color(cur_dim))
+            res.append(self.dimension_text)
+            res.append(int(line_spacing * 2))
+
+            if self.controls_text is None:
+                self.controls_text = tr.TextRenderer("", size=sz, color=colors.get_color(colors.WHITE_ID), alignment=0)
+            self.controls_text.set_text("[WASD] to Move, [Z] to Undo, [R] to Reset")
+            res.append(self.controls_text)
+
+        return res
+
+    def draw_info(self, screen, rect, lines, bg_color=(0, 0, 0), inset=4):
+        if bg_color is not None:
+            pygame.draw.rect(screen, bg_color, rect)
+
+        rect = utils.expand_rect(rect, -inset)
+
+        y_offs = 0
+        for l in lines:
+            if isinstance(l, int):
+                y_offs += l
+                continue
+
+            if not isinstance(l, tuple):
+                l = (l,)
+            line_h = 0
+            for text in l:
+                if text.get_alignment() == -1:
+                    text.draw(screen, (rect[0], rect[1] + y_offs))
+                elif text.get_alignment() == 1:
+                    text.draw(screen, (rect[0] + rect[2] - text.get_size()[0], rect[1] + y_offs))
+                else:
+                    text.draw(screen, (int(rect[0] + rect[2] / 2 - text.get_size()[0] / 2), rect[1] + y_offs))
+                line_h = max(line_h, text.get_size()[1])
+            y_offs += line_h
 
 
 _STATIONARY = 0

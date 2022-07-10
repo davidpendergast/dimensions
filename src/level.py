@@ -323,6 +323,31 @@ class State:
                 if e.ent_id in ent_ids:
                     yield e, xy
 
+    def is_player_alive(self):
+        for _ in self.all_entities_with_type(sprites.EntityID.PLAYER):
+            return True
+        return False
+
+    def get_player_color(self):
+        for p, _ in self.all_entities_with_type(sprites.EntityID.PLAYER):
+            return p.color_id
+        return colors.WHITE_ID
+
+    def num_enemies_remaining(self):
+        res = 0
+        for e in self.all_entities_with_type(sprites.EntityID.all_enemies()):
+            res += 1
+        return res
+
+    def get_initial_state(self):
+        cur = self
+        while cur.get_prev() is not None:  # infinite loop potential here, be careful
+            cur = cur.get_prev()
+        return cur
+
+    def is_success(self):
+        return self.num_enemies_remaining() == 0
+
     def all_coords_with_type(self, ent_ids):
         if isinstance(ent_ids, str):
             ent_ids = (ent_ids,)

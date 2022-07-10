@@ -69,13 +69,15 @@ def set_length(t, length):
         return scale(t, length / m)
 
 
-
-
 def rect_contains(rect, xy) -> bool:
     return not (xy[0] < rect[0]
                 or xy[1] < rect[1]
                 or xy[0] >= rect[0] + rect[2]
                 or xy[1] >= rect[1] + rect[3])
+
+
+def expand_rect(rect, amt):
+    return (rect[0] - amt, rect[1] - amt, rect[2] + amt * 2, rect[3] + amt * 2)
 
 
 def get_rect_containing_points(pts) -> typing.Tuple[int, int, int, int]:
