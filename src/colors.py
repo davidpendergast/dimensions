@@ -59,7 +59,11 @@ def get_color(color_id):
     if color_id in COLORS:
         return COLORS[color_id][0]
     else:
-        return 0, 0, 0
+        return COLORS[WHITE_ID][0]
+
+
+def get_white():
+    return get_color(WHITE_ID)
 
 
 def get_color_name(color_id, caps=False):

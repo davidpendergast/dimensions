@@ -1,6 +1,7 @@
 import pygame
 import typing
 import src.utils as utils
+import src.colors as colors
 
 
 _CACHED_FONTS = {}  # (name, size) -> Font
@@ -19,11 +20,11 @@ def load_font(name, size) -> pygame.font.Font:
 
 class TextRenderer:
 
-    def __init__(self, text: str, size: typing.Union[int, str], color=(255, 255, 255), bg_color=None,
+    def __init__(self, text: str, size: typing.Union[int, str], color=None, bg_color=None,
                  font_name="alagard", y_kerning=0, alignment=-1):
         self._text = text
         self._text_size = size
-        self._text_color = color
+        self._text_color = color or colors.get_white()
         self._bg_color = bg_color
         self._text_font_name = font_name
         self._text_y_kerning = y_kerning

@@ -54,7 +54,7 @@ class MenuManager:
         elif transition or transition == "":
             trans_text = None
             if isinstance(transition, str):
-                trans_text = tr.TextRenderer(transition, "L", colors.get_color(colors.WHITE_ID), alignment=0, y_kerning=8)
+                trans_text = tr.TextRenderer(transition, "L", colors.get_white(), alignment=0, y_kerning=8)
             elif isinstance(transition, tuple):
                 trans_text = tr.TextRenderer(transition[0], "L", alignment=0, y_kerning=8)
                 if len(transition) > 1 and transition[1] is not None:
@@ -88,7 +88,7 @@ class MainMenu(Menu):
     def __init__(self):
         super().__init__()
 
-        self._title_text = tr.TextRenderer("Alien\nKnightmare", 'H', colors.get_color(colors.WHITE_ID), alignment=0)
+        self._title_text = tr.TextRenderer("Alien\nKnightmare", 'H', colors.get_white(), alignment=0)
         self._spacing = 16
 
         self._selected_opt = 0
@@ -142,7 +142,7 @@ class MainMenu(Menu):
             if idx == self._selected_opt:
                 opt.set_color(colors.get_color(colors.RED_ID))
             else:
-                opt.set_color(colors.get_color(colors.WHITE_ID))
+                opt.set_color(colors.get_white())
 
     def draw(self, screen: pygame.Surface):
         cx = screen.get_width() // 2
@@ -173,8 +173,98 @@ class IntroCutsceneMenu(Menu):
 
 class LevelSelectMenu(Menu):
 
-    def __init__(self, selected_name=None):
+    def __init__(self, selected_name=None, row_size=8):
         super().__init__()
+        self.levels = [l for l in loader.all_levels()]
+        self.completed = set(l.name for l in self.levels if loader.is_completed(l.name))
+        self.max_completed_idx = -1 if len(self.completed) == 0 else max(loader.idx_of(name) for name in self.completed)
+        self.row_size = row_size
+
+        self.selected_idx = loader.idx_of(selected_name) if selected_name is not None else -1
+        if self.selected_idx == -1:
+            self.selected_idx = 0
+
+        self.title_text = tr.TextRenderer("Level Select", size="H", color=colors.get_white(), alignment=0)
+        if len(self.completed) < len(self.levels):
+            self.info_text = tr.TextRenderer(f"Completed: {len(self.completed)}/{len(self.levels)}", size="M", alignment=0)
+        else:
+            total_steps = sum(loader.is_completed(l.name) for l in self.completed)
+            self.info_text = tr.TextRenderer(f"All Complete! Total Steps: {total_steps}", size="M", alignment=0)
+
+        self.selected_level_text = tr.TextRenderer("", size="M", color=colors.get_white(), alignment=0)
+        self._update_selected_level_text()
+
+    def _update_selected_level_text(self):
+        sel_name = self.get_selected().name
+        if sel_name in self.completed:
+            status = f"Completed in {loader.is_completed(sel_name)} Steps"
+        elif self.is_unlocked(sel_name):
+            status = "Incomplete"
+        else:
+            status = "Locked"
+        self.selected_level_text.set_text(f"{sel_name}: {status}")
+
+    def get_selected(self) -> level.State:
+        return self.levels[self.selected_idx]
+
+    def is_unlocked(self, name):
+        name_idx = loader.idx_of(name)
+        return name_idx <= self.max_completed_idx + 1
+
+    def draw(self, screen):
+        cx = screen.get_width() // 2
+        y = screen.get_height() // 4
+        spacing = 8
+        self.title_text.draw_with_center_at(screen, (cx, y))
+        y += self.title_text.get_size()[1] // 2
+
+        y += self.info_text.get_size()[1] // 2 + spacing
+        self.info_text.draw_with_center_at(screen, (cx, y))
+        y += self.info_text.get_size()[1] // 2 + spacing
+
+        grid_rect_top = y
+
+        sel_level_xy = (cx, screen.get_height() - spacing - self.selected_level_text.get_size()[1] // 2)
+        self.selected_level_text.draw_with_center_at(screen, sel_level_xy)
+
+        grid_rect_bottom = self.selected_level_text.get_last_drawn_rect()[1] - spacing
+        pygame.draw.rect(screen, (255, 0, 0), (spacing, grid_rect_top, screen.get_width() - spacing * 2, grid_rect_bottom - grid_rect_top), 1)
+
+    def try_to_activate_selected_level(self) -> bool:
+        l = self.get_selected()
+        if self.is_unlocked(l.name):
+            sounds.play(sounds.LEVEL_START)
+            self.manager.set_menu(PlayingLevelMenu(l), transition=True)
+            return True
+        else:
+            sounds.play(sounds.ERROR)
+            return False
+
+    def update(self, dt):
+        if inputs.was_pressed(configs.ESCAPE):
+            self.manager.set_menu(MainMenu(), transition=True)
+            sounds.play(sounds.LEVEL_QUIT)
+
+        if inputs.was_pressed(configs.ENTER):
+            self.try_to_activate_selected_level()
+
+        dx, dy = 0, 0
+        if inputs.was_pressed(configs.MOVE_UP):
+            dy -= 1
+        if inputs.was_pressed(configs.MOVE_DOWN):
+            dy += 1
+        if inputs.was_pressed(configs.MOVE_LEFT):
+            dx -= 1
+        if inputs.was_pressed(configs.MOVE_RIGHT):
+            dx += 1
+
+        if dx != 0 or dy != 0:
+            self.selected_idx += dx
+            self.selected_idx += self.row_size * dy
+            sounds.play(sounds.PLAYER_MOVED)
+        
+        self.selected_idx %= len(self.levels)
+        self._update_selected_level_text()
 
 
 class WinMenu(Menu):

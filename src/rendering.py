@@ -114,8 +114,8 @@ class LevelRenderer:
         res = []
         if self.in_progress_text is None:
             self.in_progress_text = (
-                tr.TextRenderer("", size=sz, color=colors.get_color(colors.WHITE_ID), alignment=-1),
-                tr.TextRenderer("", size=sz, color=colors.get_color(colors.WHITE_ID), alignment=1))
+                tr.TextRenderer("", size=sz, color=colors.get_white(), alignment=-1),
+                tr.TextRenderer("", size=sz, color=colors.get_white(), alignment=1))
         self.in_progress_text[0].set_text(f"  Steps: {self.cur_state.step}")
         self.in_progress_text[1].set_text(f"Level: {self.cur_state.name}  ")
         res.append(self.in_progress_text)
@@ -131,7 +131,7 @@ class LevelRenderer:
             res.append(self.you_died_text)
             res.append(line_spacing)
             if self.r_to_restart_text is None:
-                self.r_to_restart_text = tr.TextRenderer("", size=sz, color=colors.get_color(colors.WHITE_ID), alignment=0)
+                self.r_to_restart_text = tr.TextRenderer("", size=sz, color=colors.get_white(), alignment=0)
             self.r_to_restart_text.set_text("Press [R] to restart, or [Z] to undo.")
             res.append(self.r_to_restart_text)
         elif self.cur_state.is_success():
@@ -141,14 +141,14 @@ class LevelRenderer:
             res.append(self.success_text)
         else:
             if self.goal_text is None:
-                self.goal_text = tr.TextRenderer("", size=sz, color=colors.get_color(colors.WHITE_ID), alignment=0)
+                self.goal_text = tr.TextRenderer("", size=sz, color=colors.get_white(), alignment=0)
             n_alive = self.cur_state.num_enemies_remaining()
             orig_alive = self.cur_state.get_initial_state().num_enemies_remaining()
             self.goal_text.set_text(f"Crush all enemies to win! ({(orig_alive - n_alive)}/{orig_alive})")
             res.append(self.goal_text)
 
             if self.dimension_text is None:
-                self.dimension_text = tr.TextRenderer("", size=sz, color=colors.get_color(colors.WHITE_ID), alignment=0)
+                self.dimension_text = tr.TextRenderer("", size=sz, color=colors.get_white(), alignment=0)
             cur_dim = self.cur_state.get_player_color()
             self.dimension_text.set_text(f"You're in the {colors.get_color_name(cur_dim, caps=True)} Dimension")
             self.dimension_text.set_color(colors.get_color(cur_dim))
@@ -156,7 +156,7 @@ class LevelRenderer:
             res.append(int(line_spacing * 2))
 
             if self.controls_text is None:
-                self.controls_text = tr.TextRenderer("", size=sz, color=colors.get_color(colors.WHITE_ID), alignment=0)
+                self.controls_text = tr.TextRenderer("", size=sz, color=colors.get_white(), alignment=0)
             self.controls_text.set_text("[WASD] to Move, [Z] to Undo, [R] to Reset")
             res.append(self.controls_text)
 
