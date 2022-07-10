@@ -69,7 +69,7 @@ class Game:
             self.menu_manager.draw(screen)
 
             pygame.display.flip()
-            pygame.display.set_caption(f"Color Quest [FPS={self.clock.get_fps():.1f}]")
+            pygame.display.set_caption(f"Alien Knightmare [FPS={self.clock.get_fps():.1f}]")
 
             await asyncio.sleep(0)
             dt = self.clock.tick(self.fps) / 1000.0
