@@ -29,7 +29,11 @@ def make_demo_state2(dims):
         for y in range(dims[1]):
             xy = (x, y)
             if x == 0 or y == 0 or x == dims[0] - 1 or y == dims[1] - 1 or random.random() < 0.2:
-                state.add_entity(xy, level.Wall())
+                if random.random() < 0.1:
+                    wall_color_id = colors.rand_color_id()
+                else:
+                    wall_color_id = colors.WHITE_ID
+                state.add_entity(xy, level.Wall(color_id=wall_color_id))
             elif random.random() < 0.2:
                 if random.random() < 0.8:
                     box_color_id = random.randint(0, colors.YELLOW_ID)

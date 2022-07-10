@@ -25,6 +25,10 @@ class Menu:
     def draw(self, screen):
         pass
 
+    def fill_bg(self, screen):
+        if self.bg_color is not None:
+            screen.fill(self.bg_color)
+
     def update(self, dt):
         pass
 
@@ -40,11 +44,13 @@ class MenuManager:
     def get_menu(self) -> Menu:
         return self.cur_menu
 
-    def set_menu(self, menu: Menu, immediately=False):
+    def set_menu(self, menu: Menu, immediately=False, cool_transition=False):
         if immediately:
             self.cur_menu = menu
             self.cur_menu.manager = self
             self.next_menu = None
+        elif cool_transition:
+            self.next_menu = TextTransitionMenu(None, self.cur_menu, menu, pause_time=0)
         else:
             self.next_menu = menu
 
@@ -58,8 +64,7 @@ class MenuManager:
         self.cur_menu.elapsed_time += dt
 
     def draw(self, screen):
-        if self.cur_menu.bg_color is not None:
-            screen.fill(self.cur_menu.bg_color)
+        self.cur_menu.fill_bg(screen)
         self.cur_menu.draw(screen)
 
 
@@ -165,7 +170,7 @@ class MainMenu(Menu):
     def __init__(self):
         super().__init__()
 
-        self._title_text = TextRenderer("Color Quest", 'H', colors.get_color(colors.WHITE_ID))
+        self._title_text = TextRenderer("Alien\nKnightmare", 'H', colors.get_color(colors.WHITE_ID))
         self._spacing = 16
 
         self._selected_opt = 0
@@ -182,9 +187,9 @@ class MainMenu(Menu):
             idx = self._selected_opt
         sounds.play(sounds.POTION_CONSUMED)
         if idx == 0:
-            self.manager.set_menu(IntroCutsceneMenu())
+            self.manager.set_menu(PlayingLevelMenu(loader.make_demo_state2((13, 9))), cool_transition=True)
         elif idx == 1:
-            self.manager.set_menu(LevelSelectMenu())
+            self.manager.set_menu(LevelSelectMenu(), cool_transition=True)
 
     def update(self, dt):
         old_selection = self._selected_opt
@@ -245,7 +250,6 @@ class IntroCutsceneMenu(Menu):
         super().__init__()
 
     def update(self, dt):
-        # TODO
         self.manager.set_menu(PlayingLevelMenu(loader.make_demo_state2((13, 9))))
 
 
@@ -253,6 +257,55 @@ class LevelSelectMenu(Menu):
 
     def __init__(self, selected_id=None):
         super().__init__()
+
+
+class TextTransitionMenu(Menu):
+
+    def __init__(self, text_renderer, from_menu, to_menu, pause_time=1, fadeout_time=0.25, fadein_time=0.25,
+                 bg_color=(0, 0, 0), center_lines=True):
+        super().__init__()
+        self.text = text_renderer
+        self.center_lines = center_lines
+
+        self.from_menu = from_menu
+        self.to_menu = to_menu
+
+        self.pause_time = pause_time
+        self.fadeout_time = fadeout_time
+        self.fadein_time = fadein_time
+
+        self.bg_color = None  # parent stuff
+        self.my_bg_color = bg_color
+
+        self.overlay = None
+
+    def update(self, dt):
+        if self.elapsed_time >= self.fadein_time + self.pause_time + self.fadeout_time:
+            self.manager.set_menu(self.to_menu, cool_transition=False)
+
+    def draw(self, screen):
+        t = self.elapsed_time
+        if t <= self.fadein_time:
+            opacity = t / self.fadein_time
+            self.from_menu.fill_bg(screen)
+            self.from_menu.draw(screen)
+        elif t <= self.fadein_time + self.pause_time:
+            opacity = 1.0
+        else:
+            opacity = max(0.0, 1 - (t - self.fadein_time - self.pause_time) / self.fadeout_time)
+            self.to_menu.fill_bg(screen)
+            self.to_menu.draw(screen)
+
+        if self.overlay is None or self.overlay.get_size() != screen.get_size():
+            self.overlay = pygame.Surface(screen.get_size())
+            self.overlay.fill(self.my_bg_color)
+            if self.text is not None:
+                cxy = self.overlay.get_rect().center
+                self.text.draw_with_center_at(self.overlay, cxy, center_lines=self.center_lines)
+
+        self.overlay.set_alpha(int(255 * opacity))
+        print(f"INFO: opacity={int(255 * opacity)}")
+        screen.blit(self.overlay, (0, 0))
 
 
 class PlayingLevelMenu(Menu):
@@ -287,8 +340,10 @@ class PlayingLevelMenu(Menu):
             self.renderer.set_state(self.state, prev=old_state)
             self.state.what_was.play_sounds()
             print(f"step={self.state.step}:\t{self.state.what_was}")
+
         if inputs.was_pressed(configs.ESCAPE):
-            self.manager.set_menu(LevelSelectMenu(selected_id=self.state.name))
+            self.manager.set_menu(MainMenu())
+            # self.manager.set_menu(LevelSelectMenu(selected_id=self.state.name))
 
     def draw(self, screen):
         self.renderer.get_offset_for_centering(screen, and_apply=True)

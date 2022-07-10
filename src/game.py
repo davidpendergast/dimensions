@@ -72,7 +72,7 @@ class Game:
             pygame.display.set_caption(f"Color Quest [FPS={self.clock.get_fps():.1f}]")
 
             await asyncio.sleep(0)
-            dt = self.clock.tick(self.fps)
+            dt = self.clock.tick(self.fps) / 1000.0
 
             if inputs.was_quit_requested() and not configs.WEB_MODE:
                 print("INFO: quit signal received; quitting")
