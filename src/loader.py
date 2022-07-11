@@ -21,7 +21,7 @@ def load_levels():
     _NAME_TO_LEVEL.clear()
 
     if configs.IS_DEBUG and configs.DEBUG_FAKE_LEVELS:
-        for _ in range(25):
+        for _ in range(24):
             l = make_demo_state2()
             l.name = "".join(random.choice(string.ascii_lowercase) for _2 in range(5))
             _ORDERED_LEVELS_FROM_DISK.append(l)

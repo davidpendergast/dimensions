@@ -26,7 +26,7 @@ class Game:
         if configs.WEB_MODE:
             return 0
         else:
-            return pygame.SCALED | pygame.RESIZABLE
+            return pygame.RESIZABLE
 
     async def start(self):
         pygame.init()

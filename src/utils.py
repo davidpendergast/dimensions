@@ -34,7 +34,7 @@ def bound(t, lower, upper):
 
 
 def round(t):
-    return tuple(round(i) for i in t)
+    return tuple(int(i + 0.5) if i >= 0 else int(i - 0.5) for i in t)
 
 
 def dist_sq(t1, t2):

@@ -194,6 +194,10 @@ class LevelSelectMenu(Menu):
         self.selected_level_text = tr.TextRenderer("", size="M", color=colors.get_white(), alignment=0)
         self._update_selected_level_text()
 
+        self.grid_rect = (0, 0, 10, 10)  # bwah
+        self.cell_rects = []
+        self.cell_text = []
+
     def _update_selected_level_text(self):
         sel_name = self.get_selected().name
         if sel_name in self.completed:
@@ -214,7 +218,7 @@ class LevelSelectMenu(Menu):
     def draw(self, screen):
         cx = screen.get_width() // 2
         y = screen.get_height() // 4
-        spacing = 8
+        spacing = 16
         self.title_text.draw_with_center_at(screen, (cx, y))
         y += self.title_text.get_size()[1] // 2
 
@@ -228,17 +232,51 @@ class LevelSelectMenu(Menu):
         self.selected_level_text.draw_with_center_at(screen, sel_level_xy)
 
         grid_rect_bottom = self.selected_level_text.get_last_drawn_rect()[1] - spacing
-        pygame.draw.rect(screen, (255, 0, 0), (spacing, grid_rect_top, screen.get_width() - spacing * 2, grid_rect_bottom - grid_rect_top), 1)
+        self.grid_rect = (spacing, grid_rect_top, screen.get_width() - spacing * 2, grid_rect_bottom - grid_rect_top)
+        grid_cell_size = (self.grid_rect[2] / self.row_size, spacing * 3)
+        self.cell_rects.clear()
 
-    def try_to_activate_selected_level(self) -> bool:
-        l = self.get_selected()
-        if self.is_unlocked(l.name):
-            sounds.play(sounds.LEVEL_START)
-            self.manager.set_menu(PlayingLevelMenu(l), transition=True)
-            return True
-        else:
-            sounds.play(sounds.ERROR)
-            return False
+        for grid_idx in range(len(self.levels)):
+            l = self.levels[grid_idx]
+            grid_xy = (grid_idx % self.row_size, grid_idx // self.row_size)
+
+            line_width = 2
+            r = (int(self.grid_rect[0] + grid_xy[0] * grid_cell_size[0]),
+                 int(self.grid_rect[1] + grid_xy[1] * grid_cell_size[1]),
+                 int(grid_cell_size[0]), int(grid_cell_size[1]))
+            r = utils.expand_rect(r, -2)
+            self.cell_rects.append(r)
+
+            if grid_idx == self.selected_idx:
+                c = colors.get_color(colors.RED_ID)
+            elif l.name in self.completed:
+                c = colors.get_color(colors.GREEN_ID)
+            elif self.is_unlocked(l.name):
+                c = colors.get_white()
+            else:
+                c = colors.get_gray()
+
+            if grid_idx >= len(self.cell_text):
+                text = tr.TextRenderer("", size="M", alignment=0)
+                self.cell_text.append(text)
+            else:
+                text = self.cell_text[grid_idx]
+            text.set_text(f"{grid_idx + 1}")
+            text.set_color(c)
+
+            text.draw_with_center_at(screen, utils.rect_center(r))
+            pygame.draw.rect(screen, c, r, line_width)
+
+    def try_to_activate_level(self, level_idx) -> bool:
+        if 0 <= level_idx < len(self.levels):
+            l = self.levels[level_idx]
+            if self.is_unlocked(l.name):
+                sounds.play(sounds.LEVEL_START)
+                self.manager.set_menu(PlayingLevelMenu(l), transition=True)
+                return True
+
+        sounds.play(sounds.ERROR)
+        return False
 
     def update(self, dt):
         if inputs.was_pressed(configs.ESCAPE):
@@ -246,7 +284,7 @@ class LevelSelectMenu(Menu):
             sounds.play(sounds.LEVEL_QUIT)
 
         if inputs.was_pressed(configs.ENTER):
-            self.try_to_activate_selected_level()
+            self.try_to_activate_level(self.selected_idx)
 
         dx, dy = 0, 0
         if inputs.was_pressed(configs.MOVE_UP):
@@ -262,7 +300,16 @@ class LevelSelectMenu(Menu):
             self.selected_idx += dx
             self.selected_idx += self.row_size * dy
             sounds.play(sounds.PLAYER_MOVED)
-        
+
+        if inputs.did_click() or inputs.did_mouse_move():
+            pos = inputs.get_mouse_pos()
+            for idx, r in enumerate(self.cell_rects):
+                if inputs.did_click(in_rect=r):
+                    self.try_to_activate_level(idx)
+                elif utils.rect_contains(r, pos) and idx != self.selected_idx:
+                    self.selected_idx = idx
+                    sounds.play(sounds.PLAYER_MOVED)
+
         self.selected_idx %= len(self.levels)
         self._update_selected_level_text()
 
@@ -368,9 +415,8 @@ class PlayingLevelMenu(Menu):
             print(f"step={self.state.step}:\t{self.state.what_was}")
 
         if inputs.was_pressed(configs.ESCAPE):
-            self.manager.set_menu(MainMenu(), transition=True)
+            self.manager.set_menu(LevelSelectMenu(selected_name=self.state.name), transition=True)
             sounds.play(sounds.LEVEL_QUIT)
-            # self.manager.set_menu(LevelSelectMenu(selected_name=self.state.name))
 
         elif self.state.step > 0 and self.state.is_success():
             loader.set_completed(self.state.name, self.state.step)

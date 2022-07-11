@@ -66,6 +66,10 @@ def get_white():
     return get_color(WHITE_ID)
 
 
+def get_gray(pct=0.5):
+    return utils.round(utils.scale(get_white(), pct))
+
+
 def get_color_name(color_id, caps=False):
     res = "unknown"
     if color_id in COLORS:
