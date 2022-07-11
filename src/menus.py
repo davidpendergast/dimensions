@@ -403,7 +403,7 @@ class PlayingLevelMenu(Menu):
                 direction = (0, -1)
             elif inputs.was_pressed(configs.MOVE_RIGHT):
                 direction = (1, 0)
-            elif inputs.was_pressed(configs.MOVE_DOWN):
+            elif inputs.was_pressed(configs.MOVE_DOWN) and (not configs.IS_DEBUG or not inputs.is_held(pygame.K_LCTRL)):
                 direction = (0, 1)
             else:
                 direction = (0, 0)
@@ -416,7 +416,7 @@ class PlayingLevelMenu(Menu):
         # level editing stuff
         if configs.IS_DEBUG:
             mouse_xy = self.renderer.get_grid_cell_at(inputs.get_mouse_pos())
-            if inputs.was_pressed(pygame.K_s) and inputs.is_held(pygame.K_LSHIFT):
+            if inputs.was_pressed(pygame.K_s) and inputs.is_held(pygame.K_LCTRL):
                 self.do_reset(silent=True)
                 self.initial_state.save_to_json(f"saved/{self.initial_state.name}.json")
             if mouse_xy is not None and inputs.was_pressed((pygame.K_DELETE, pygame.K_e)):

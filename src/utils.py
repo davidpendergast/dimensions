@@ -30,7 +30,10 @@ def scale(t1, a):
 
 
 def bound(t, lower, upper):
-    return tuple(min(max(lower, i), upper) for i in t)
+    if isinstance(t, (float, int)):
+        return min(max(t, lower), upper)
+    else:
+        return tuple(min(max(lower, i), upper) for i in t)
 
 
 def round(t):

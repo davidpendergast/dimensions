@@ -30,4 +30,4 @@ PAUSE = (pygame.K_ESCAPE,)
 
 # debug stuff
 IS_DEBUG = not WEB_MODE and os.path.exists(".gitignore")
-DEBUG_FAKE_LEVELS = True
+DEBUG_FAKE_LEVELS = False

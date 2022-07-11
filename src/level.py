@@ -1,3 +1,5 @@
+import json
+import os.path
 import traceback
 
 import pygame
@@ -5,11 +7,13 @@ import typing
 
 from functools import total_ordering
 
+import configs
 import src.sprites as sprites
 import src.inputs as inputs
 import src.colors as colors
 import src.sounds as sounds
 import src.utils as utils
+import src.persistentdata as pd
 
 _UID_COUNTER = 1
 
@@ -533,6 +537,34 @@ class State:
                           pos[1] + cellsize * xy[1])
                 surf.blit(ent_sprite, ent_xy)
 
+    def save_to_json(self, filepath) -> typing.Optional[dict]:
+        try:
+            blob = {
+                pd.VERSION_KEY: configs.VERSION,
+                NAME_TAG: self.name,
+                DATA_TAG: []
+            }
+
+            area = self.get_area()
+            for y in range(area[1], area[1] + area[3]):
+                row_items = []
+                for x in range(area[0], area[0] + area[2]):
+                    ents_at_xy = list(self.all_entities_at((x, y)))
+                    row_items.append(_encode_ents(ents_at_xy))
+                blob[DATA_TAG].append(" ".join(row_items))
+
+            if filepath is not None:
+                print(f"INFO: saving {blob[NAME_TAG]} to {filepath}\n" +
+                      "\n".join(blob[DATA_TAG]))
+                with open(filepath, 'w') as f:
+                    json.dump(blob, f)
+
+            return blob
+        except:
+            print("ERROR: failed to save level")
+            traceback.print_exc()
+            return None
+
 
 NAME_TAG = "name"
 DATA_TAG = "data"
@@ -585,6 +617,45 @@ def from_json(blob) -> State:
                 res.add_entity((x, y), obj)
     res.get_area(cache=True)
     return res
+
+
+def _encode_ents(ents) -> str:
+    if len(ents) == 0:
+        return "  "
+    elif len(ents) > 1:
+        print(f"WARN: cannot encode stack of entities: {ents} (choosing first)")
+        return _encode_ents((ents[0],))
+    else:
+        ent = ents[0]
+        color_str = str(utils.bound(ent.color_id, colors.WHITE_ID, colors.BROWN_ID))
+        prefix = None
+        if isinstance(ent, Player):
+            prefix = PLAYER_PREFIX
+        elif isinstance(ent, Enemy):
+            for prf in ENEMY_PREFIXES:
+                if ent.direction == ENEMY_PREFIXES[prf]:
+                    prefix = prf
+                    break
+            if prefix is None:
+                print(f"WARN: enemy has invalid direction: {ent}, dir={ent.direction} (not saving it).")
+        elif isinstance(ent, Box):
+            prefix = BOX_PREFIX
+        elif isinstance(ent, Wall):
+            prefix = WALL_PREFIX
+        elif isinstance(ent, Snek):
+            prefix = SNEK_PREFIX
+        elif isinstance(ent, Potion):
+            prefix = POTION_PREFIX
+
+        if prefix is None:
+            print(f"WARN: an entity couldn't be saved: {ent}")
+            return "  "
+        else:
+            return prefix + color_str
+
+
+
+
 
 
 
