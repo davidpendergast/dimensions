@@ -64,6 +64,9 @@ class Game:
                 colors.load(colorblind=configs.COLORBLIND_MODE)
                 sprites.clear_cache()
 
+            if inputs.was_pressed(configs.MUSIC_TOGGLE):
+                sounds.set_songs_muted(not configs.SONG_MUTED)
+
             self.menu_manager.update(dt)
 
             screen = pygame.display.get_surface()

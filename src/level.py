@@ -597,7 +597,7 @@ _OBJ_CREATOR = {
     SNEK_PREFIX: lambda c: Snek(color_id=c),
 }
 for _pfx in ENEMY_PREFIXES:
-    _OBJ_CREATOR[_pfx] = lambda c: Enemy(c, ENEMY_PREFIXES[_pfx])
+    _OBJ_CREATOR[_pfx] = lambda c, _loop_pfx=_pfx: Enemy(c, ENEMY_PREFIXES[_loop_pfx])
 
 
 def from_json(blob) -> State:

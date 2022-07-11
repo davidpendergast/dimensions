@@ -176,8 +176,8 @@ class LevelSelectMenu(Menu):
     def __init__(self, selected_name=None, row_size=8):
         super().__init__()
         self.levels = [l for l in loader.all_levels()]
-        self.completed = set(l.name for l in self.levels if loader.is_completed(l.name))
-        self.max_completed_idx = -1 if len(self.completed) == 0 else max(loader.idx_of(name) for name in self.completed)
+        self.completed_names = set(l.name for l in self.levels if loader.is_completed(l.name))
+        self.max_completed_idx = -1 if len(self.completed_names) == 0 else max(loader.idx_of(name) for name in self.completed_names)
         self.row_size = row_size
 
         self.selected_idx = loader.idx_of(selected_name) if selected_name is not None else -1
@@ -185,10 +185,10 @@ class LevelSelectMenu(Menu):
             self.selected_idx = 0
 
         self.title_text = tr.TextRenderer("Level Select", size="H", color=colors.get_white(), alignment=0)
-        if len(self.completed) < len(self.levels):
-            self.info_text = tr.TextRenderer(f"Completed: {len(self.completed)}/{len(self.levels)}", size="M", alignment=0)
+        if len(self.completed_names) < len(self.levels):
+            self.info_text = tr.TextRenderer(f"Completed: {len(self.completed_names)}/{len(self.levels)}", size="M", alignment=0)
         else:
-            total_steps = sum(loader.is_completed(l.name) for l in self.completed)
+            total_steps = sum(loader.is_completed(n) for n in self.completed_names)
             self.info_text = tr.TextRenderer(f"All Complete! Total Steps: {total_steps}", size="M", alignment=0)
 
         self.selected_level_text = tr.TextRenderer("", size="M", color=colors.get_white(), alignment=0)
@@ -200,7 +200,7 @@ class LevelSelectMenu(Menu):
 
     def _update_selected_level_text(self):
         sel_name = self.get_selected().name
-        if sel_name in self.completed:
+        if sel_name in self.completed_names:
             status = f"Completed in {loader.is_completed(sel_name)} Steps"
         elif self.is_unlocked(sel_name):
             status = "Incomplete"
@@ -249,7 +249,7 @@ class LevelSelectMenu(Menu):
 
             if grid_idx == self.selected_idx:
                 c = colors.get_color(colors.RED_ID)
-            elif l.name in self.completed:
+            elif l.name in self.completed_names:
                 c = colors.get_color(colors.GREEN_ID)
             elif self.is_unlocked(l.name):
                 c = colors.get_white()
