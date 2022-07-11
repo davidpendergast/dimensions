@@ -3,8 +3,8 @@ import random
 
 
 BLACK_ID = -1
-WHITE_ID = 0
 
+WHITE_ID = 0
 RED_ID = 1
 GREEN_ID = 2
 BLUE_ID = 3

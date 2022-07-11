@@ -378,18 +378,17 @@ class PlayingLevelMenu(Menu):
         self.state = self.initial_state.copy()
         self.renderer = rendering.AnimatedLevelRenderer(self.state, cell_size=48)
 
+    def do_reset(self, silent=False):
+        self.state = self.initial_state.copy()
+        self.renderer.set_state(self.state, prev=None)
+        if not silent:
+            sounds.play(sounds.RESET_LEVEL)
+
     def update(self, dt):
         if inputs.was_pressed(configs.RESET):
-            if configs.IS_DEBUG and inputs.is_held(pygame.K_LSHIFT):  # TODO debug only
+            if configs.IS_DEBUG and inputs.is_held(pygame.K_LSHIFT):
                 self.initial_state = loader.make_demo_state2()
-
-            self.state = self.initial_state.copy()
-            self.renderer.set_state(self.state, prev=None)
-            sounds.play(sounds.RESET_LEVEL)
-        elif configs.IS_DEBUG and inputs.was_pressed(pygame.K_k):
-            self.state = self.state.get_next((0, 0))
-            for e, xy in list(self.state.all_entities_with_type(sprites.EntityID.all_enemies())):
-                self.state.remove_entity(xy, e)
+            self.do_reset()
         elif inputs.was_pressed(configs.UNDO):
             prev = self.state.get_prev()
             if prev is not None:
@@ -413,6 +412,54 @@ class PlayingLevelMenu(Menu):
             self.renderer.set_state(self.state, prev=old_state)
             self.state.what_was.play_sounds()
             print(f"step={self.state.step}:\t{self.state.what_was}")
+
+        # level editing stuff
+        if configs.IS_DEBUG:
+            mouse_xy = self.renderer.get_grid_cell_at(inputs.get_mouse_pos())
+            if inputs.was_pressed(pygame.K_s) and inputs.is_held(pygame.K_LSHIFT):
+                self.do_reset(silent=True)
+                self.initial_state.save_to_json(f"saved/{self.initial_state.name}.json")
+            if mouse_xy is not None and inputs.was_pressed((pygame.K_DELETE, pygame.K_e)):
+                for e in list(self.state.all_entities_at(mouse_xy)):
+                    self.initial_state.remove_entity(mouse_xy, e)
+                self.do_reset(silent=True)
+            if mouse_xy is not None and inputs.was_pressed(pygame.K_q):
+                self.initial_state.add_entity(mouse_xy, level.Wall())
+                self.do_reset(silent=True)
+            if mouse_xy is not None and inputs.was_pressed(pygame.K_p):
+                self.initial_state.add_entity(mouse_xy, level.Player(colors.RED_ID))
+                self.do_reset(silent=True)
+            if mouse_xy is not None and inputs.was_pressed(pygame.K_b):
+                self.initial_state.add_entity(mouse_xy, level.Box())
+                self.do_reset(silent=True)
+            if mouse_xy is not None and inputs.was_pressed(pygame.K_j):
+                self.initial_state.add_entity(mouse_xy, level.Enemy(colors.BLUE_ID, (-1, 0)))
+                self.do_reset(silent=True)
+            if mouse_xy is not None and inputs.was_pressed(pygame.K_k):
+                self.initial_state.add_entity(mouse_xy, level.Enemy(colors.BLUE_ID, (0, 1)))
+                self.do_reset(silent=True)
+            if mouse_xy is not None and inputs.was_pressed(pygame.K_l):
+                self.initial_state.add_entity(mouse_xy, level.Enemy(colors.BLUE_ID, (1, 0)))
+                self.do_reset(silent=True)
+            if mouse_xy is not None and inputs.was_pressed(pygame.K_i):
+                self.initial_state.add_entity(mouse_xy, level.Enemy(colors.BLUE_ID, (0, -1)))
+                self.do_reset(silent=True)
+            if mouse_xy is not None and inputs.was_pressed(pygame.K_o):
+                self.initial_state.add_entity(mouse_xy, level.Enemy(colors.BLUE_ID, (0, 0)))
+                self.do_reset(silent=True)
+            if mouse_xy is not None and inputs.was_pressed(pygame.K_y):
+                self.initial_state.add_entity(mouse_xy, level.Potion(colors.GREEN_ID))
+                self.do_reset(silent=True)
+            for k in range(pygame.K_1, pygame.K_7 + 1):
+                if mouse_xy is not None and inputs.was_pressed(k):
+                    for ent in self.initial_state.all_entities_at(mouse_xy):
+                        ent.color_id = k - pygame.K_1
+                    self.do_reset(silent=True)
+
+            if inputs.was_pressed(pygame.K_EQUALS):
+                self.state = self.state.get_next((0, 0))
+                for e, xy in list(self.state.all_entities_with_type(sprites.EntityID.all_enemies())):
+                    self.state.remove_entity(xy, e)
 
         if inputs.was_pressed(configs.ESCAPE):
             self.manager.set_menu(LevelSelectMenu(selected_name=self.state.name), transition=True)

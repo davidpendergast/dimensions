@@ -81,6 +81,11 @@ class LevelRenderer:
                   round(self.xy_offset[1] + self.cell_size * xy[1]))
         surf.blit(ent_sprite, ent_xy)
 
+    def get_grid_cell_at(self, screen_xy):
+        screen_xy_wo_offset = utils.sub(screen_xy, self.xy_offset)
+        grid_xy = utils.scale(screen_xy_wo_offset, 1 / self.cell_size)
+        return int(grid_xy[0]), int(grid_xy[1])
+
     def draw(self, surf):
         for ent, xy in self.all_sorted_entities_to_render():
             self.draw_entity_at(ent, surf, xy)

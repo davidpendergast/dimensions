@@ -23,7 +23,6 @@ def load_levels():
     if configs.IS_DEBUG and configs.DEBUG_FAKE_LEVELS:
         for _ in range(24):
             l = make_demo_state2()
-            l.name = "".join(random.choice(string.ascii_lowercase) for _2 in range(5))
             _ORDERED_LEVELS_FROM_DISK.append(l)
             _NAME_TO_LEVEL[l.name] = l
     else:
@@ -105,7 +104,9 @@ def make_demo_state():
 def make_demo_state2(dims=(13, 7)):
     import random
 
-    state = level.State("Demo 2")
+    name = "".join(random.choice(string.ascii_lowercase) for _2 in range(6))
+    state = level.State(name)
+
     for x in range(dims[0]):
         for y in range(dims[1]):
             xy = (x, y)
