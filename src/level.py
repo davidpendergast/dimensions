@@ -307,11 +307,13 @@ class State:
             elif or_else == 'search':
                 actual_xy = self.get_xy(ent)
                 if actual_xy is not None:
-                    self.remove_entity(actual_xy, ent, or_else='fail')
+                    return self.remove_entity(actual_xy, ent, or_else='fail')
         else:
             self.level[xy].remove(ent)
             if len(self.level[xy]) == 0:
                 del self.level[xy]
+            return True
+        return False
 
     def remove_all_entities_at(self, xy):
         for ent in list(self.all_entities_at(xy)):
@@ -348,7 +350,7 @@ class State:
 
     def num_enemies_remaining(self):
         res = 0
-        for e in self.all_entities_with_type(sprites.EntityID.all_enemies()):
+        for _ in self.all_entities_with_type(sprites.EntityID.all_enemies()):
             res += 1
         return res
 
@@ -443,21 +445,17 @@ class State:
 
         return success
 
-    def _remove_crushed_things(self):
-        crushed = []
+    def _get_crushed_things(self) -> dict:
+        crushed = {}
         for (e, xy) in self.all_entities_with_type(sprites.EntityID.all_crushables()):
             if self.is_in_bounds(xy):
                 for e2 in self.all_entities_at(xy):
                     if e2 != e and e2.is_solid() and e2.color_id != e.color_id:
-                        crushed.append((e, xy))
+                        crushed[e] = xy
                         break
             else:
-                crushed.append((e, xy))
-
-        for (e, xy) in crushed:
-            self.remove_entity(xy, e)
-            self.what_was.crushed.add(e)
-            self.what_was.killed.add(e)
+                crushed[e] = xy
+        return crushed
 
     def _handle_direct_collisions(self, enemies_have_moved) -> dict:
         """
@@ -492,7 +490,6 @@ class State:
             if used_any_potion:
                 for pot in potions:
                     used_potions[pot] = xy
-                    self.what_was.consumed.add(pot)
 
             # handle collisions with enemies
             for p in players:
@@ -528,18 +525,38 @@ class State:
         # move player
         res._try_to_move_player(player_dir)
 
-        # check for things player just crushed
-        res._remove_crushed_things()
-
         # handle collisions between enemies, players, and potions
         res._turn_enemies()
         used_pots = res._handle_direct_collisions(False)
+
+        # check for things player just crushed
+        crushed = res._get_crushed_things()
+
+        # remove crushed enemies and players
+        # (potions can still apply as they're being crushed)
+        for e in list(crushed.keys()):
+            if not isinstance(e, Potion):
+                res.remove_entity(crushed[e], e)
+                res.what_was.crushed.add(e)
+                res.what_was.killed.add(e)
+                del crushed[e]
 
         res._move_enemies()
         used_pots.update(res._handle_direct_collisions(True))
 
         for pot in used_pots:
-            res.remove_entity(used_pots[pot], pot, or_else='search')
+            if res.remove_entity(used_pots[pot], pot, or_else='search'):
+                res.what_was.consumed.add(pot)
+            if pot in crushed:
+                del crushed[pot]
+
+        # do a final pass to clean up everything that was crushed
+        crushed.update(res._get_crushed_things())
+        for e in crushed:
+            if res.remove_entity(crushed[e], e, or_else='search'):
+                res.what_was.crushed.add(e)
+                if not isinstance(e, Potion):
+                    res.what_was.killed.add(e)
 
         return res
 
