@@ -1,0 +1,20 @@
+Puzzle Paradigms:
+[First Contact] I can push box, I can kill
+[Second Contact] Box against wall can't be retrieved
+[ ] turn skipping
+[Parity] Boxes can push other boxes
+[Gauntlet] Can slide behind enemy
+[Potion] Potion can save me from enemy
+[ ] Boxes can redirect enemies
+[ ] You can pass through walls with your color
+[Poison] Enemies can pass through walls/boxes of their color
+	- You can push potions into a wall containing an enemy to kill it
+- boxes of the same color can't push each other
+- You can push potions into enemies to change their color
+- You can take/break potions to avoid having an enemy take it
+- You can go "OOB" with white potions
+- Boxes of the same color can't push each other
+	
+- You can push enemies/potions that are in boxes
+	- bug / not very useful?
+- Stacked potions are consumed... oddly

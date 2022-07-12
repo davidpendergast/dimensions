@@ -300,13 +300,22 @@ class State:
             self.level[xy] = []
         self.level[xy].append(ent)
 
-    def remove_entity(self, xy, ent):
-        if xy not in self.level or ent not in self.level[xy]:
-            raise ValueError(f"{ent} is not at {xy}, cannot remove it")
+    def remove_entity(self, xy, ent, or_else='fail'):
+        if xy is None or xy not in self.level or ent not in self.level[xy]:
+            if or_else == 'fail':
+                raise ValueError(f"{ent} is not at {xy}, cannot remove it")
+            elif or_else == 'search':
+                actual_xy = self.get_xy(ent)
+                if actual_xy is not None:
+                    self.remove_entity(actual_xy, ent, or_else='fail')
         else:
             self.level[xy].remove(ent)
             if len(self.level[xy]) == 0:
                 del self.level[xy]
+
+    def remove_all_entities_at(self, xy):
+        for ent in list(self.all_entities_at(xy)):
+            self.remove_entity(xy, ent)
 
     def move_entity(self, from_xy, to_xy, entity, ignore_bounds=False):
         if from_xy != to_xy:
@@ -450,7 +459,11 @@ class State:
             self.what_was.crushed.add(e)
             self.what_was.killed.add(e)
 
-    def _handle_direct_collisions(self, enemies_have_moved):
+    def _handle_direct_collisions(self, enemies_have_moved) -> dict:
+        """
+        :return: map: Potion -> (x, y) of potions that were consumed
+        """
+        used_potions = {}
         types_we_care_about = (sprites.EntityID.PLAYER, sprites.EntityID.POTION) + sprites.EntityID.all_enemies()
         for xy in list(self.all_coords_with_type(types_we_care_about)):
             enemies = [e for e in self.all_entities_at(xy) if isinstance(e, Enemy)]
@@ -461,7 +474,7 @@ class State:
             players.sort()
             potions.sort()
 
-            used_potion = False
+            used_any_potion = False
             for e in players + enemies:
                 orig_color = e.color_id
                 any_pot_had_orig_color = False
@@ -469,16 +482,16 @@ class State:
                     if e.color_id != pot.color_id:
                         e.color_id = pot.color_id
                         self.what_was.colored.add(e)
-                        used_potion = True
+                        used_any_potion = True
                     if pot.color_id == orig_color:
                         any_pot_had_orig_color = True
                 if e.color_id != orig_color and any_pot_had_orig_color:
                     e.color_id = orig_color  # trust me, this is logical
 
             # if any potion got used, remove all potions (again, logical)
-            if used_potion:
+            if used_any_potion:
                 for pot in potions:
-                    self.remove_entity(xy, pot)
+                    used_potions[pot] = xy
                     self.what_was.consumed.add(pot)
 
             # handle collisions with enemies
@@ -488,6 +501,7 @@ class State:
                         if enemies_have_moved or utils.add(p.direction, e.direction) == (0, 0):
                             self.remove_entity(xy, p)
                             self.what_was.killed.add(p)
+        return used_potions
 
     def _turn_enemies(self):
         for e, xy in list(self.all_entities_with_type(sprites.EntityID.all_enemies())):
@@ -519,10 +533,13 @@ class State:
 
         # handle collisions between enemies, players, and potions
         res._turn_enemies()
-        res._handle_direct_collisions(False)
+        used_pots = res._handle_direct_collisions(False)
 
         res._move_enemies()
-        res._handle_direct_collisions(True)
+        used_pots.update(res._handle_direct_collisions(True))
+
+        for pot in used_pots:
+            res.remove_entity(used_pots[pot], pot, or_else='search')
 
         return res
 
@@ -537,7 +554,7 @@ class State:
                           pos[1] + cellsize * xy[1])
                 surf.blit(ent_sprite, ent_xy)
 
-    def save_to_json(self, filepath) -> typing.Optional[dict]:
+    def save_to_json(self, filepath: str, allow_overwrite=False) -> typing.Optional[dict]:
         try:
             blob = {
                 pd.VERSION_KEY: configs.VERSION,
@@ -554,8 +571,16 @@ class State:
                 blob[DATA_TAG].append(" ".join(row_items))
 
             if filepath is not None:
+                if os.path.exists(filepath) and not allow_overwrite:
+                    name, ext = filepath.rsplit(".", 1)
+                    n = 1
+                    while os.path.exists(f"{name}({n}).{ext}"):
+                        n += 1
+                    filepath = f"{name}({n}).{ext}"
+
                 print(f"INFO: saving {blob[NAME_TAG]} to {filepath}\n" +
                       "\n".join(blob[DATA_TAG]))
+
                 with open(filepath, 'w') as f:
                     json.dump(blob, f)
 

@@ -212,8 +212,11 @@ class LevelSelectMenu(Menu):
         return self.levels[self.selected_idx]
 
     def is_unlocked(self, name):
-        name_idx = loader.idx_of(name)
-        return name_idx <= self.max_completed_idx + 1
+        if configs.IS_DEBUG and configs.DEBUG_ALL_UNLOCKED:
+            return True
+        else:
+            name_idx = loader.idx_of(name)
+            return name_idx <= self.max_completed_idx + 1
 
     def draw(self, screen):
         cx = screen.get_width() // 2
@@ -420,16 +423,17 @@ class PlayingLevelMenu(Menu):
                 self.do_reset(silent=True)
                 self.initial_state.save_to_json(f"saved/{self.initial_state.name}.json")
             if mouse_xy is not None and inputs.was_pressed((pygame.K_DELETE, pygame.K_e)):
-                for e in list(self.state.all_entities_at(mouse_xy)):
-                    self.initial_state.remove_entity(mouse_xy, e)
+                self.initial_state.remove_all_entities_at(mouse_xy)
                 self.do_reset(silent=True)
             if mouse_xy is not None and inputs.was_pressed(pygame.K_q):
+                self.initial_state.remove_all_entities_at(mouse_xy)
                 self.initial_state.add_entity(mouse_xy, level.Wall())
                 self.do_reset(silent=True)
             if mouse_xy is not None and inputs.was_pressed(pygame.K_p):
                 self.initial_state.add_entity(mouse_xy, level.Player(colors.RED_ID))
                 self.do_reset(silent=True)
             if mouse_xy is not None and inputs.was_pressed(pygame.K_b):
+                self.initial_state.remove_all_entities_at(mouse_xy)
                 self.initial_state.add_entity(mouse_xy, level.Box())
                 self.do_reset(silent=True)
             if mouse_xy is not None and inputs.was_pressed(pygame.K_j):
@@ -456,7 +460,7 @@ class PlayingLevelMenu(Menu):
                         ent.color_id = k - pygame.K_1
                     self.do_reset(silent=True)
 
-            if inputs.was_pressed(pygame.K_EQUALS):
+            if inputs.was_pressed(pygame.K_EQUALS):  # win button
                 self.state = self.state.get_next((0, 0))
                 for e, xy in list(self.state.all_entities_with_type(sprites.EntityID.all_enemies())):
                     self.state.remove_entity(xy, e)
@@ -468,7 +472,11 @@ class PlayingLevelMenu(Menu):
         elif self.state.step > 0 and self.state.is_success():
             loader.set_completed(self.state.name, self.state.step)
             idx = loader.idx_of(self.state.name)
-            if idx == -1:
+
+            if configs.IS_DEBUG and configs.DEBUG_NO_CONTINUE:
+                print("INFO: Resetting because we're in dev")
+                self.do_reset()
+            elif idx == -1:
                 # some kind of bad state, idk
                 self.manager.set_menu(MainMenu(), transition=True)
             else:
