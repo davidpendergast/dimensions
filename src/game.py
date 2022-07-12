@@ -1,5 +1,6 @@
 import pygame
 import asyncio
+import traceback
 
 import configs
 import src.inputs as inputs
@@ -8,6 +9,7 @@ import src.colors as colors
 import src.menus as menus
 import src.rendering as rendering
 import src.loader as loader
+import src.persistentdata as pd
 
 import src.sprites as sprites
 import src.sounds as sounds
@@ -41,6 +43,8 @@ class Game:
         sounds.load()
         sounds.play_song(sounds.MAIN_SONG)
         loader.load_levels()
+
+        pd.load_data_from_disk()
 
         self.menu_manager = menus.MenuManager(menus.MainMenu())
 
