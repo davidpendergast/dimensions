@@ -35,9 +35,10 @@ def load_levels():
                         blob = json.load(f)  # TODO not sure if this works on web (I think it should though)
 
                         l = level.from_json(blob)
+                        l.original_filepath = filepath
                         _ORDERED_LEVELS_FROM_DISK.append(l)
                         _NAME_TO_LEVEL[l.name] = l
-                        print(f"INFO: loaded {filepath}")
+                        print(f"INFO: loaded '{l.name}' from {filepath}")
                     except Exception as e:
                         print(f"ERROR: failed to load: {filepath}")
                         raise e

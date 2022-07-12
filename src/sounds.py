@@ -9,25 +9,27 @@ import configs
 import src.inputs as inputs
 import src.utils as utils
 
-_SOUNDS: typing.Dict[str, typing.List[pygame.mixer.Sound]] = {}
+_SOUNDS: typing.Dict[str, typing.List[typing.Tuple[pygame.mixer.Sound, str]]] = {}
 _TIMES_PLAYED: typing.Dict[str, float] = {}
 
 
-BOX_MOVED = "box_move"
+BOX_MOVED = "boxmove"
 PLAYER_MOVED = "move"
 ENEMY_MOVED = "move"
-PLAYER_KILLED = "synth"
+PLAYER_KILLED = "playerkilled"
 PLAYER_SKIPPED = "move"
 ENEMY_KILLED = "synth"
-POTION_CRUSHED = "click"
+POTION_CRUSHED = "potioncrushed"
 POTION_CONSUMED = "powerup"
+
 LEVEL_START = "powerup"
 LEVEL_COMPLETED = "powerup"
-LEVEL_QUIT = "synth"
+LEVEL_QUIT = "reset"
+LEVEL_RESET = "reset"
+
 GAME_WON = "powerup"
 ERROR = "synth"
 
-RESET_LEVEL = "synth"
 UNDO_LEVEL = "synth"
 
 
@@ -48,7 +50,7 @@ def load():
                 _SOUNDS[prefix] = []
 
             try:
-                _SOUNDS[prefix].append(pygame.mixer.Sound(filepath))
+                _SOUNDS[prefix].append((pygame.mixer.Sound(filepath), filepath))
             except (IOError, pygame.error):
                 print(f"ERROR: failed to load {filepath}")
                 traceback.print_exc()
@@ -64,9 +66,11 @@ def play(name):
         pass
     elif name in _SOUNDS and len(_SOUNDS[name]) > 0:
         _TIMES_PLAYED[name] = cur_time
-        to_play = random.choice(_SOUNDS[name])
+        to_play, fp = random.choice(_SOUNDS[name])
         to_play.set_volume(configs.SOUND_VOLUME)
         to_play.play()
+        if configs.IS_DEBUG:
+            print(f"DEBUG: played sound: {fp}")
     else:
         print(f"WARN: unrecognized sound id: {name}")
 

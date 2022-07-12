@@ -9,7 +9,7 @@ COLORBLIND_MODE = True
 COLORBLIND_TOGGLE = (pygame.K_c,)
 
 SONG_VOLUME = 1.0
-SONG_MUTED = True  # TODO unmute
+SONG_MUTED = False  # TODO unmute
 MUSIC_TOGGLE = (pygame.K_m,)
 
 SOUND_VOLUME = 0.2
@@ -32,5 +32,6 @@ PAUSE = (pygame.K_ESCAPE,)
 # debug stuff
 IS_DEBUG = not WEB_MODE and os.path.exists(".gitignore")
 DEBUG_FAKE_LEVELS = False
-DEBUG_NO_CONTINUE = True
+DEBUG_NO_CONTINUE = False
 DEBUG_ALL_UNLOCKED = True
+DEBUG_OVERWRITE_WHILE_SAVING = True

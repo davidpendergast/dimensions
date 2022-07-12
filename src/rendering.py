@@ -82,9 +82,12 @@ class LevelRenderer:
         surf.blit(ent_sprite, ent_xy)
 
     def get_grid_cell_at(self, screen_xy):
-        screen_xy_wo_offset = utils.sub(screen_xy, self.xy_offset)
-        grid_xy = utils.scale(screen_xy_wo_offset, 1 / self.cell_size)
-        return int(grid_xy[0]), int(grid_xy[1])
+        if screen_xy is not None:
+            screen_xy_wo_offset = utils.sub(screen_xy, self.xy_offset)
+            grid_xy = utils.scale(screen_xy_wo_offset, 1 / self.cell_size)
+            return int(grid_xy[0]), int(grid_xy[1])
+        else:
+            return (0, 0)
 
     def draw(self, surf):
         for ent, xy in self.all_sorted_entities_to_render():

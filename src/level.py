@@ -266,10 +266,12 @@ class State:
         self.bounds = bounds
 
         self.what_was = WhatHappened()  # note: not copied
+        self.original_filepath = None  # note: also not copied
 
     def copy(self) -> 'State':
         res = State(self.name, step=self.step, prev=self.prev)
         res.bounds = None if self.bounds is None else tuple(self.bounds)
+
         for xy in self.level:
             for e in self.level[xy]:
                 res.add_entity(xy, e.copy())

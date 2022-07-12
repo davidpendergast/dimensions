@@ -1,3 +1,4 @@
+import os.path
 import typing
 
 import pygame.font
@@ -385,7 +386,7 @@ class PlayingLevelMenu(Menu):
         self.state = self.initial_state.copy()
         self.renderer.set_state(self.state, prev=None)
         if not silent:
-            sounds.play(sounds.RESET_LEVEL)
+            sounds.play(sounds.LEVEL_RESET)
 
     def update(self, dt):
         if inputs.was_pressed(configs.RESET):
@@ -421,38 +422,49 @@ class PlayingLevelMenu(Menu):
             mouse_xy = self.renderer.get_grid_cell_at(inputs.get_mouse_pos())
             if inputs.was_pressed(pygame.K_s) and inputs.is_held(pygame.K_LCTRL):
                 self.do_reset(silent=True)
-                self.initial_state.save_to_json(f"saved/{self.initial_state.name}.json")
+
+                path_to_use = f"saved/{self.initial_state.name}.json"
+                overwrite = False
+                if (configs.DEBUG_OVERWRITE_WHILE_SAVING
+                        and not inputs.is_held(pygame.K_LSHIFT)
+                        and self.initial_state.original_filepath is not None
+                        and os.path.exists(self.initial_state.original_filepath)):
+                    path_to_use = self.initial_state.original_filepath
+                    overwrite = True
+
+                self.initial_state.save_to_json(path_to_use, allow_overwrite=overwrite)
+
             if mouse_xy is not None and inputs.was_pressed((pygame.K_DELETE, pygame.K_e)):
                 self.initial_state.remove_all_entities_at(mouse_xy)
                 self.do_reset(silent=True)
             if mouse_xy is not None and inputs.was_pressed(pygame.K_q):
                 self.initial_state.remove_all_entities_at(mouse_xy)
-                self.initial_state.add_entity(mouse_xy, level.Wall())
+                self.initial_state.add_entity(mouse_xy, level.Wall(), ignore_bounds=True)
                 self.do_reset(silent=True)
             if mouse_xy is not None and inputs.was_pressed(pygame.K_p):
-                self.initial_state.add_entity(mouse_xy, level.Player(colors.RED_ID))
+                self.initial_state.add_entity(mouse_xy, level.Player(colors.RED_ID), ignore_bounds=True)
                 self.do_reset(silent=True)
             if mouse_xy is not None and inputs.was_pressed(pygame.K_b):
                 self.initial_state.remove_all_entities_at(mouse_xy)
-                self.initial_state.add_entity(mouse_xy, level.Box())
+                self.initial_state.add_entity(mouse_xy, level.Box(), ignore_bounds=True)
                 self.do_reset(silent=True)
             if mouse_xy is not None and inputs.was_pressed(pygame.K_j):
-                self.initial_state.add_entity(mouse_xy, level.Enemy(colors.BLUE_ID, (-1, 0)))
+                self.initial_state.add_entity(mouse_xy, level.Enemy(colors.BLUE_ID, (-1, 0)), ignore_bounds=True)
                 self.do_reset(silent=True)
             if mouse_xy is not None and inputs.was_pressed(pygame.K_k):
-                self.initial_state.add_entity(mouse_xy, level.Enemy(colors.BLUE_ID, (0, 1)))
+                self.initial_state.add_entity(mouse_xy, level.Enemy(colors.BLUE_ID, (0, 1)), ignore_bounds=True)
                 self.do_reset(silent=True)
             if mouse_xy is not None and inputs.was_pressed(pygame.K_l):
-                self.initial_state.add_entity(mouse_xy, level.Enemy(colors.BLUE_ID, (1, 0)))
+                self.initial_state.add_entity(mouse_xy, level.Enemy(colors.BLUE_ID, (1, 0)), ignore_bounds=True)
                 self.do_reset(silent=True)
             if mouse_xy is not None and inputs.was_pressed(pygame.K_i):
-                self.initial_state.add_entity(mouse_xy, level.Enemy(colors.BLUE_ID, (0, -1)))
+                self.initial_state.add_entity(mouse_xy, level.Enemy(colors.BLUE_ID, (0, -1)), ignore_bounds=True)
                 self.do_reset(silent=True)
             if mouse_xy is not None and inputs.was_pressed(pygame.K_o):
-                self.initial_state.add_entity(mouse_xy, level.Enemy(colors.BLUE_ID, (0, 0)))
+                self.initial_state.add_entity(mouse_xy, level.Enemy(colors.BLUE_ID, (0, 0)), ignore_bounds=True)
                 self.do_reset(silent=True)
             if mouse_xy is not None and inputs.was_pressed(pygame.K_y):
-                self.initial_state.add_entity(mouse_xy, level.Potion(colors.GREEN_ID))
+                self.initial_state.add_entity(mouse_xy, level.Potion(colors.GREEN_ID), ignore_bounds=True)
                 self.do_reset(silent=True)
             for k in range(pygame.K_1, pygame.K_7 + 1):
                 if mouse_xy is not None and inputs.was_pressed(k):
