@@ -494,10 +494,11 @@ class State:
             # handle collisions with enemies
             for p in players:
                 for e in enemies:
-                    if p.color_id != e.color_id:
+                    if colors.can_interact(p.color_id, e.color_id):
                         if enemies_have_moved or utils.add(p.direction, e.direction) == (0, 0):
                             self.remove_entity(xy, p)
                             self.what_was.killed.add(p)
+                            break  # in case multiple enemies collided with player at same time
         return used_potions
 
     def _turn_enemies(self):
