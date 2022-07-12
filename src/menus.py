@@ -96,6 +96,8 @@ class MainMenu(Menu):
         self._options = [
             tr.TextRenderer("start", "L", alignment=0),
             tr.TextRenderer("levels", "L", alignment=0),
+            tr.TextRenderer("controls", "L", alignment=0),
+            tr.TextRenderer("credits", "L", alignment=0)
         ]
 
         self.p_color_id = colors.rand_color_id()
@@ -109,6 +111,10 @@ class MainMenu(Menu):
             self.manager.set_menu(PlayingLevelMenu(loader.get_level_by_idx(0)), transition=True)
         elif idx == 1:
             self.manager.set_menu(LevelSelectMenu(), transition=True)
+        elif idx == 2:
+            self.manager.set_menu(InstructionsMenu(self), transition=True)
+        elif idx == 3:
+            self.manager.set_menu(CreditsMenu(self), transition=True)
 
     def update(self, dt):
         old_selection = self._selected_opt
@@ -163,13 +169,57 @@ class MainMenu(Menu):
         screen.blit(enemy_spr, (3 * screen.get_width() / 4 - enemy_spr.get_width() / 2, title_cy + self._title_text.get_size()[1]))
 
 
-class IntroCutsceneMenu(Menu):
+class CutSceneMenu(Menu):
 
-    def __init__(self):
+    def __init__(self, pages: typing.List[tr.TextRenderer], next_menu: Menu, idx=0):
         super().__init__()
+        self.pages = pages
+        self.next = next_menu
+        self.cur_idx = idx
 
     def update(self, dt):
-        self.manager.set_menu(PlayingLevelMenu(loader.get_level_by_idx(0)))
+        next_idx = self.cur_idx
+        if inputs.was_pressed(configs.ENTER) or inputs.did_click():
+            next_idx += 1
+        elif inputs.was_pressed(configs.ESCAPE):
+            next_idx = len(self.pages)
+
+        if next_idx >= len(self.pages):
+            self.manager.set_menu(self.next, transition=True)
+        elif next_idx != self.cur_idx:
+            sounds.play(sounds.PLAYER_MOVED)
+            self.manager.set_menu(CutSceneMenu(self.pages, self.next, idx=next_idx), transition=True)
+
+    def draw(self, screen):
+        if 0 <= self.cur_idx < len(self.pages):
+            page = self.pages[self.cur_idx]
+            if page is not None:
+                cxy = screen.get_width() // 2, screen.get_height() // 2
+                page.draw_with_center_at(screen, cxy)
+
+
+class InstructionsMenu(CutSceneMenu):
+
+    def __init__(self, next_menu):
+        pages = [tr.TextRenderer("Defend the castle from the aliens!\n\n"
+                                 "[WASD] or arrow keys to Move\n"
+                                 "[R] to Reset Level\n"
+                                 "[Z] to Undo\n"
+                                 "[M] to Mute music\n\n"
+                                 "Walk into walls to skip turn", "M", alignment=0, y_kerning=2)]
+        super().__init__(pages, next_menu)
+
+
+class CreditsMenu(CutSceneMenu):
+
+    def __init__(self, next_menu):
+        pages = [tr.TextRenderer("Made by Ghast\nghastly.itch.io\n\n"
+                                 "Music: fakemusicgenerator.com / cgMusic\n"
+                                 "Font: Alagard by Hewett Tsoi\n"
+                                 "Sound effects: sfxr.me\n\n"
+                                 "Made using pygame and pygame-wasm", "M", alignment=0, y_kerning=2)]
+
+        super().__init__(pages, next_menu)
 
 
 class LevelSelectMenu(Menu):

@@ -30,7 +30,7 @@ RESET = (pygame.K_r, pygame.K_RETURN)
 PAUSE = (pygame.K_ESCAPE,)
 
 # debug stuff
-IS_DEBUG = False and not WEB_MODE and os.path.exists(".gitignore")
+IS_DEBUG = not WEB_MODE and os.path.exists(".gitignore") and False
 DEBUG_FAKE_LEVELS = False
 DEBUG_NO_CONTINUE = False
 DEBUG_ALL_UNLOCKED = True
