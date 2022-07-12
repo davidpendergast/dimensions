@@ -522,18 +522,28 @@ class State:
         res.prev = self
         res.step += 1
 
-        # move player
+        # Rules:
+        # 1. Player moves, pushing boxes.
+        # 2. Enemies and potions get pushed by boxes.
+        # 3. Enemies turn if they're facing a wall.
+        # 4. Potions are applied (but not removed).
+        # 5. Player is killed if they overlap an enemy, and they're facing each other.
+        # 6. Enemies are removed if they were crushed.
+        # 7. Enemies move.
+        # 8. Potions are applied (again).
+        # 9. Player is killed if they overlap an enemy (again).
+        # 10. Potions that were consumed or crushed are removed.
+
+        # (1, 2) move player, push stuff
         res._try_to_move_player(player_dir)
 
-        # handle collisions between enemies, players, and potions
-        res._turn_enemies()
+        res._turn_enemies()  # (3)
+
+        # (4, 5) handle collisions between enemies, players, and potions
         used_pots = res._handle_direct_collisions(False)
 
-        # check for things player just crushed
+        # (6) remove crushed enemies
         crushed = res._get_crushed_things()
-
-        # remove crushed enemies and players
-        # (potions can still apply as they're being crushed)
         for e in list(crushed.keys()):
             if not isinstance(e, Potion):
                 res.remove_entity(crushed[e], e)
@@ -541,23 +551,22 @@ class State:
                 res.what_was.killed.add(e)
                 del crushed[e]
 
-        res._move_enemies()
-        used_pots.update(res._handle_direct_collisions(True))
+        res._move_enemies()  # (7)
 
+        used_pots.update(res._handle_direct_collisions(True))  # (8, 9)
+
+        # final pass, remove anything that was crushed or consumed (10)
         for pot in used_pots:
             if res.remove_entity(used_pots[pot], pot, or_else='search'):
                 res.what_was.consumed.add(pot)
             if pot in crushed:
                 del crushed[pot]
-
-        # do a final pass to clean up everything that was crushed
         crushed.update(res._get_crushed_things())
         for e in crushed:
             if res.remove_entity(crushed[e], e, or_else='search'):
                 res.what_was.crushed.add(e)
                 if not isinstance(e, Potion):
                     res.what_was.killed.add(e)
-
         return res
 
     def get_prev(self):
