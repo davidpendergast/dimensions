@@ -106,9 +106,17 @@ class MainMenu(Menu):
     def _activate_option(self, idx=None):
         if idx is None:
             idx = self._selected_opt
+
         sounds.play(sounds.POTION_CONSUMED)
+
         if idx == 0:
-            playing_menu = PlayingLevelMenu(loader.get_level_by_idx(0))
+            start_level = loader.get_level_by_idx(0)
+
+            if loader.is_every_level_complete() and loader.EASTER_EGG_LEVEL is not None:
+                loader.SAW_SNEK_LORE = False
+                start_level = loader.EASTER_EGG_LEVEL
+            playing_menu = PlayingLevelMenu(start_level)
+
             lore_txt = get_lore_text(0)
             if lore_txt is not None:
                 self.manager.set_menu(LoreMenu(lore_txt, playing_menu), transition=True)
@@ -184,7 +192,7 @@ class CutSceneMenu(Menu):
 
     def update(self, dt):
         next_idx = self.cur_idx
-        if inputs.was_pressed(configs.ENTER + configs.RESET) or inputs.did_click():
+        if inputs.was_pressed(configs.ENTER + configs.RESET + configs.ALL_MOVE_KEYS) or inputs.did_click():
             next_idx += 1
         elif inputs.was_pressed(configs.ESCAPE):
             next_idx = len(self.pages)
@@ -219,7 +227,7 @@ class CreditsMenu(CutSceneMenu):
 
     def __init__(self, next_menu):
         pages = [tr.TextRenderer("Art, Code, and Concept by Ghast\nghastly.itch.io\n\n"
-                                 "Music: fakemusicgenerator.com / cgMusic\n"
+                                 "Music: fakemusicgenerator.com (cgMusic)\n"
                                  "Font: Alagard by Hewett Tsoi\n"
                                  "Sound effects: sfxr.me\n\n"
                                  "Story: OpenAI Playground\n"
@@ -351,15 +359,15 @@ SNEK_LORE = (
 
     "The python told the knight that it wanted to\n"
     "play a game. If the knight could answer its\n"
-    "riddle, the python would let him pass.\n"
+    "riddle, the python would let him pass.\n\n"
+    
     "If the knight couldn't answer the riddle,\n"
-    "the python would eat him. ",
-
-    "The knight agreed to the game and the python\n"
-    "asked its riddle.\n"
+    "the python would eat him. The knight agreed\n"
+    "to the game and the python asked its riddle.\n\n"
     
     "\"What will this expression evaluate to?\"\n\n"
-    "{True: 'yes', 1: 'no', 1.0: 'maybe'}\n\n",
+    
+    "{True: 'yes', 1: 'no', 1.0: 'maybe'}\n\n"
 
     "The knight did some calculations in his head\n"
     "for a moment and then answered. The python\n"
@@ -377,12 +385,20 @@ def get_lore_text(level_idx):
 
 class LoreMenu(CutSceneMenu):
 
-    def __init__(self, text, next_menu):
+    def __init__(self, text, next_menu, color="rand"):
         if not isinstance(text, tuple):
             text = (text, )
-        color = colors.get_color(colors.rand_color_id(include_white=True))
+        if color == "rand":
+            color = colors.get_color(colors.rand_color_id())
         pages = [tr.TextRenderer(t, size="M", color=color, y_kerning=4) for t in text]
         super().__init__(pages, next_menu)
+
+
+class SnekLoreMenu(LoreMenu):
+
+    def __init__(self, next_menu):
+        color = colors.get_color(colors.YELLOW_ID)
+        super().__init__(SNEK_LORE, next_menu, color=color)
 
 
 class YouWinMenu(CutSceneMenu):
@@ -623,6 +639,7 @@ class PlayingLevelMenu(Menu):
             sounds.play(sounds.LEVEL_RESET)
 
     def update(self, dt):
+        old_state = self.state
         if inputs.was_pressed(configs.RESET):
             if configs.IS_DEBUG and inputs.is_held(pygame.K_LSHIFT):
                 self.initial_state = loader.make_demo_state2()
@@ -630,9 +647,8 @@ class PlayingLevelMenu(Menu):
         elif inputs.was_pressed(configs.UNDO):
             prev = self.state.get_prev()
             if prev is not None:
-                old_cur = self.state
                 self.state = prev.copy()  # probably don't *need* to copy here, but eh
-                self.renderer.set_state(self.state, prev=old_cur)
+                self.renderer.set_state(self.state, prev=old_state)
             sounds.play(sounds.UNDO_LEVEL)
         elif inputs.was_pressed(configs.ALL_MOVE_KEYS):
             if inputs.was_pressed(configs.MOVE_LEFT):
@@ -645,7 +661,6 @@ class PlayingLevelMenu(Menu):
                 direction = (0, 1)
             else:
                 direction = (0, 0)
-            old_state = self.state
             self.state = old_state.get_next(direction)
             self.renderer.set_state(self.state, prev=old_state)
             self.state.what_was.play_sounds()
@@ -715,39 +730,56 @@ class PlayingLevelMenu(Menu):
             self.manager.set_menu(LevelSelectMenu(selected_name=self.state.name), transition=True)
             sounds.play(sounds.LEVEL_QUIT)
 
-        elif self.state.step > 0 and self.state.is_success():
-            loader.set_completed(self.state.name, self.state.step)
-            idx = loader.idx_of(self.state.name)
+        elif self.state != old_state:
+            if self.state.step > 0 and self.state.is_success():
+                loader.set_completed(self.state.name, self.state.step)
+                idx = loader.idx_of(self.state.name)
 
-            if configs.IS_DEBUG and configs.DEBUG_NO_CONTINUE:
-                print("INFO: Resetting because we're in dev")
-                self.do_reset()
-            elif idx == -1:
-                # some kind of bad state, idk
-                self.manager.set_menu(MainMenu(), transition=True)
-            else:
-                p_color = self.state.get_player_color()
-                lvl_cleared_text = (f"Floor Cleared!\nSteps: {self.state.step}", p_color, "L")
-
-                next_idx = idx + 1
-                if next_idx >= loader.num_levels():
-                    total_steps = loader.get_total_steps()
-                    win_menu = YouWinMenu(total_steps, next_menu=MainMenu())
-                    self.manager.set_menu(LoreMenu(GAME_OVER_LORE, win_menu), transition=lvl_cleared_text)
-                    sounds.play(sounds.GAME_WON)
+                if configs.IS_DEBUG and configs.DEBUG_NO_CONTINUE:
+                    print("INFO: Resetting because we're in dev")
+                    self.do_reset()
+                elif idx == -1:
+                    # some kind of bad state, idk
+                    self.manager.set_menu(MainMenu(), transition=True)
                 else:
-                    next_level_state = loader.get_level_by_idx(next_idx)
-                    next_menu = PlayingLevelMenu(next_level_state)
+                    lvl_cleared_text = (f"Floor Cleared!\nSteps: {self.state.step}", colors.rand_color_id(), "L")
 
-                    lore_text = get_lore_text(next_idx)
-                    if lore_text is not None:
-                        next_menu = LoreMenu(lore_text, next_menu)
+                    next_idx = idx + 1
+                    if next_idx >= loader.num_levels():
+                        total_steps = loader.get_total_steps()
+                        win_menu = YouWinMenu(total_steps, next_menu=MainMenu())
+                        self.manager.set_menu(LoreMenu(GAME_OVER_LORE, win_menu), transition=lvl_cleared_text)
+                        sounds.play(sounds.GAME_WON)
+                    else:
+                        next_level_state = loader.get_level_by_idx(next_idx)
+                        next_menu = PlayingLevelMenu(next_level_state)
 
-                    self.manager.set_menu(next_menu, transition=lvl_cleared_text)
-                    sounds.play(sounds.LEVEL_COMPLETED)
+                        lore_text = get_lore_text(next_idx)
+                        if lore_text is not None:
+                            next_menu = LoreMenu(lore_text, next_menu)
+
+                        self.manager.set_menu(next_menu, transition=lvl_cleared_text)
+                        sounds.play(sounds.LEVEL_COMPLETED)
+            elif self._show_snek_lore_if_necessary():
+                pass
 
     def draw(self, screen):
         self.renderer.get_offset_for_centering(screen, and_apply=True)
         self.renderer.update()
         self.renderer.draw(screen)
+
+    def _show_snek_lore_if_necessary(self):
+        if self.state.name == loader.EASTER_EGG_NAME and not loader.SAW_SNEK_LORE:
+            # check if player is adjacent to snek
+            ns = (-1, 0), (0, -1), (1, 0), (0, 1)
+            for p, p_xy in self.state.all_entities_with_type(sprites.EntityID.PLAYER):
+                for n in ns:
+                    xy_to_check = utils.add(p_xy, n)
+                    for e in self.state.all_entities_at(xy_to_check):
+                        if isinstance(e, level.Snek):
+                            loader.SAW_SNEK_LORE = True
+                            sounds.play(sounds.POTION_CONSUMED)
+                            self.manager.set_menu(SnekLoreMenu(self), transition=True)
+                            return True
+        return False
 

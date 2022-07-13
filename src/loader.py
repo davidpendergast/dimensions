@@ -13,6 +13,10 @@ import src.persistentdata as pd
 _ORDERED_LEVELS_FROM_DISK = []
 _NAME_TO_LEVEL = {}
 
+EASTER_EGG_NAME = None
+EASTER_EGG_LEVEL = None
+SAW_SNEK_LORE = False
+
 LEVEL_COMPLETIONS_KEY = "completed_levels"
 
 
@@ -32,9 +36,7 @@ def load_levels():
                 filepath = os.path.join(base_path, fname)
                 with open(filepath, 'r') as f:
                     try:
-                        blob = json.load(f)  # TODO not sure if this works on web (I think it should though)
-
-                        l = level.from_json(blob)
+                        l = level.from_json(json.load(f))
                         l.original_filepath = filepath
                         _ORDERED_LEVELS_FROM_DISK.append(l)
                         _NAME_TO_LEVEL[l.name] = l
@@ -42,6 +44,8 @@ def load_levels():
                     except Exception as e:
                         print(f"ERROR: failed to load: {filepath}")
                         raise e
+
+        _make_easter_egg_level("First Contact")
 
 
 def num_levels() -> int:
@@ -60,6 +64,8 @@ def idx_of(name: str) -> int:
     for idx, lvl in enumerate(_ORDERED_LEVELS_FROM_DISK):
         if lvl.name == name:
             return idx
+    if name is not None and name == EASTER_EGG_NAME:
+        return 0
     return -1
 
 
@@ -83,6 +89,13 @@ def set_completed(name, steps):
         pd.set_data(LEVEL_COMPLETIONS_KEY, completed_levels)
 
 
+def is_every_level_complete():
+    for l in all_levels():
+        if not is_completed(l.name):
+            return False
+    return True
+
+
 def get_total_steps() -> int:
     completed_levels = pd.get_data(LEVEL_COMPLETIONS_KEY, coercer=utils.get_dict_type_coercer(str, int), or_else={})
     res = 0
@@ -91,9 +104,22 @@ def get_total_steps() -> int:
     return res
 
 
+def _make_easter_egg_level(base_level_name):
+    global EASTER_EGG_LEVEL, EASTER_EGG_NAME
+    EASTER_EGG_NAME = base_level_name + " (s)"
+
+    if base_level_name in _NAME_TO_LEVEL:
+        EASTER_EGG_LEVEL = _NAME_TO_LEVEL[base_level_name].copy()
+        EASTER_EGG_LEVEL.name = EASTER_EGG_NAME
+        snek_xy = (7, 2)
+        if EASTER_EGG_LEVEL.is_in_bounds(snek_xy):
+            EASTER_EGG_LEVEL.add_entity(snek_xy, level.Snek())
+        _NAME_TO_LEVEL[EASTER_EGG_NAME] = EASTER_EGG_LEVEL
+    return EASTER_EGG_LEVEL
+
+
 def make_demo_state():
     state = level.State("Demo")
-
     state.add_entity((4, 4), level.Player(colors.RED_ID))
     state.add_entity((5, 2), level.Wall())
     state.add_entity((5, 3), level.Wall())

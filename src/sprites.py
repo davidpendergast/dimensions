@@ -59,7 +59,7 @@ def load():
     BASE_SPRITES[EntityID.V_WALKER] = imgs((0, 16, 32, 48), 32)
     BASE_SPRITES[EntityID.NO_WALKER] = imgs((16, 32), 48)
     BASE_SPRITES[EntityID.WALL] = imgs(32, 0)
-    BASE_SPRITES[EntityID.SNEK] = imgs((16, 32), 16)
+    BASE_SPRITES[EntityID.SNEK] = imgs((32, 48), 16)
     BASE_SPRITES[EntityID.POTION] = imgs(0, 48)
     BASE_SPRITES[EntityID.BOX] = imgs(48, 0)
     BASE_SPRITES[EntityID.EXPLOSION] = imgs((64, 80, 96, 112), (0, 16, 32))
