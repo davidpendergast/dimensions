@@ -108,7 +108,12 @@ class MainMenu(Menu):
             idx = self._selected_opt
         sounds.play(sounds.POTION_CONSUMED)
         if idx == 0:
-            self.manager.set_menu(PlayingLevelMenu(loader.get_level_by_idx(0)), transition=True)
+            playing_menu = PlayingLevelMenu(loader.get_level_by_idx(0))
+            lore_txt = get_lore_text(0)
+            if lore_txt is not None:
+                self.manager.set_menu(LoreMenu(lore_txt, playing_menu), transition=True)
+            else:
+                self.manager.set_menu(playing_menu, transition=True)
         elif idx == 1:
             self.manager.set_menu(LevelSelectMenu(), transition=True)
         elif idx == 2:
@@ -179,7 +184,7 @@ class CutSceneMenu(Menu):
 
     def update(self, dt):
         next_idx = self.cur_idx
-        if inputs.was_pressed(configs.ENTER) or inputs.did_click():
+        if inputs.was_pressed(configs.ENTER + configs.RESET) or inputs.did_click():
             next_idx += 1
         elif inputs.was_pressed(configs.ESCAPE):
             next_idx = len(self.pages)
@@ -219,6 +224,132 @@ class CreditsMenu(CutSceneMenu):
                                  "Sound effects: sfxr.me\n\n"
                                  "Made using pygame and pygame-wasm", "M", alignment=0, y_kerning=2)]
 
+        super().__init__(pages, next_menu)
+
+
+_LORE_TEXT = [
+    "The aliens came in the night, a colorful horde intent\n" 
+    "on conquering the castle. But the knight was ready.\n" 
+    "He had boxes, lots of boxes.",
+
+    "The aliens were baffled by the knight's defenses.\n"
+    "They couldn't get past the boxes. So they resorted\n"
+    "to throwing themselves at the knight, hoping to\n"
+    "overwhelm him. But the knight was ready.",
+
+    "The brave knight had been defending his castle from\n"
+    "interdimensional aliens for years. He had seen them\n"
+    "come in all shapes and sizes, but he had never seen\n"
+    "anything like the creatures that were attacking his\n"
+    "castle now.",
+
+    "They were huge, with tentacles that seemed to be made\n"
+    "of metal. They were also incredibly fast, and it was\n"
+    "all the knight could do to keep up with them.",
+
+    "The knight drank the first potion and his armor\n"
+    "turned blue. He used his new camouflage to sneak up\n"
+    "on the aliens and ambush them. He immediately felt\n"
+    "more confident and brave. ",
+
+    "The aliens had been attacking earth for weeks, and\n"
+    "it seemed like they were never going to stop.\n"
+    "The knight had been fighting them off as best as he\n"
+    "could, but he was getting tired.",
+
+    ("The knight was getting tired, but he knew he had\n"
+    "to keep going. He had to find a way to defeat this\n"
+    "alien. Suddenly, he had an idea. He feinted to the\n"
+    "left, and when the alien reacted, he quickly dodged\n"
+    "to the right.",
+
+    "The alien was off balance for a moment, and the\n"
+    "knight took his opportunity. He ran up to the\n"
+    "alien and, using all his strength, knocked it to\n"
+    "the ground."),
+
+    "Just when it seemed like the knight was done for,\n"
+    "he remembered his training. He focused his energy\n"
+    "and willed himself to phase through the wall behind\n"
+    "him. The alien crashed into the wall, dazed from the\n"
+    "impact.",
+
+    "The knight had been fighting aliens for years,\n"
+    "and it seemed like they were getting more and\n"
+    "more clever. They had started using boxes and\n"
+    "potions to try to defeat him, but he was always\n"
+    "one step ahead.",
+
+    "He had developed a keen sense for when they were\n"
+    "going to attack and was able to counter their\n"
+    "every move. But the aliens were getting stronger,\n"
+    "and the knight was running out of ideas.",
+
+    "He knew that he needed to find a way to defeat the\n"
+    "aliens once and for all, or the world would be lost.",
+
+    "The knight spent days locked in his laboratory,\n"
+    "trying to come up with a new plan.\n\n"
+    "Finally, he had a breakthrough. He created a new box,\n"
+    "one that was so powerful it could kill an alien by\n"
+    "crushing it against a wall.",
+
+    ("As he rounded a corner, he saw a group of aliens\n"
+    "clustered together. They were laughing and joking,\n"
+    "and they didn't see the knight coming. He crept up\n"
+    "behind them, and then he attacked.",
+
+    "He threw boxes of colorful powder at them, and they\n"
+    "screamed as the powder hit them. He followed up with\n"
+    "bottles of potion, and the aliens were soon defeated."),
+
+    "He decided to crush them with boxes. It was a simple\n"
+    "plan, but it worked. The aliens didn't stand a chance\n"
+    "against the knight's might. They were no match for\n"
+    "his strength and his determination.\n\n"
+    "The knight crushed them all, one by one, until they\n"
+    "were nothing but colored smears on the floor.",
+
+    "Finally, he arrived at the castle's dungeon, ready\n"
+    "to vanquish the evil that lurked within. But to his\n"
+    "surprise, the dungeon was swarming with\n"
+    "translucent aliens.\n\n"
+    "The knight had never faced such creatures before\n"
+    "and was quickly overwhelmed. As the aliens closed\n"
+    "in around him, the knight feared that his quest\n"
+    "had come to an end.",
+
+    "The aliens came at him in a huge swarm. They were\n"
+    "unlike anything he had ever seen before. He was\n"
+    "outnumbered and outmatched, but he refused to\n"
+    "give up.\n\n"
+    "He kept fighting, even when he was injured. He was\n"
+    "determined to protect his people and defeat the\n"
+    "aliens."
+]
+
+GAME_OVER_LORE = (
+    "The aliens were no match for the knight's skill\n"
+    "and strength, and soon they were retreating back\n"
+    "to their ship. The knight triumphantly rode back\n"
+    "to the castle, where the people cheered for him\n"
+    "and hailed him as a hero.",)
+
+
+def get_lore_text(level_idx):
+    if 0 <= level_idx < len(_LORE_TEXT):
+        return _LORE_TEXT[level_idx]
+    else:
+        return None
+
+
+class LoreMenu(CutSceneMenu):
+
+    def __init__(self, text, next_menu):
+        if not isinstance(text, tuple):
+            text = (text, )
+        color = colors.get_color(colors.rand_color_id(include_white=True))
+        pages = [tr.TextRenderer(t, size="M", color=color, y_kerning=4) for t in text]
         super().__init__(pages, next_menu)
 
 
@@ -324,9 +455,16 @@ class LevelSelectMenu(Menu):
     def try_to_activate_level(self, level_idx) -> bool:
         if 0 <= level_idx < len(self.levels):
             l = self.levels[level_idx]
+
             if self.is_unlocked(l.name):
+                playing_menu = PlayingLevelMenu(l)
+                lore_text = get_lore_text(level_idx)
+                if not loader.is_completed(l.name) and lore_text is not None:
+                    self.manager.set_menu(LoreMenu(lore_text, playing_menu), transition=True)
+                else:
+                    self.manager.set_menu(playing_menu, transition=True)
+
                 sounds.play(sounds.LEVEL_START)
-                self.manager.set_menu(PlayingLevelMenu(l), transition=True)
                 return True
 
         sounds.play(sounds.ERROR)
@@ -542,15 +680,22 @@ class PlayingLevelMenu(Menu):
                 # some kind of bad state, idk
                 self.manager.set_menu(MainMenu(), transition=True)
             else:
+                p_color = self.state.get_player_color()
+                lvl_cleared_text = (f"Floor Cleared!\nSteps: {self.state.step}", p_color, "L")
+
                 next_idx = idx + 1
                 if next_idx >= loader.num_levels():
-                    self.manager.set_menu(MainMenu(), transition="You Win!")
+                    self.manager.set_menu(LoreMenu(GAME_OVER_LORE, MainMenu()), transition=lvl_cleared_text)
                     sounds.play(sounds.GAME_WON)
                 else:
                     next_level_state = loader.get_level_by_idx(next_idx)
-                    p_color = self.state.get_player_color()
-                    text = f"Floor Cleared!\nSteps: {self.state.step}"
-                    self.manager.set_menu(PlayingLevelMenu(next_level_state), transition=(text, p_color, "L"))
+                    next_menu = PlayingLevelMenu(next_level_state)
+
+                    lore_text = get_lore_text(next_idx)
+                    if lore_text is not None:
+                        next_menu = LoreMenu(lore_text, next_menu)
+
+                    self.manager.set_menu(next_menu, transition=lvl_cleared_text)
                     sounds.play(sounds.LEVEL_COMPLETED)
 
     def draw(self, screen):

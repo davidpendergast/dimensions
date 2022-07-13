@@ -274,7 +274,7 @@ class State:
 
         for xy in self.level:
             for e in self.level[xy]:
-                res.add_entity(xy, e.copy())
+                res.add_entity(xy, e.copy(), ignore_bounds=True)
         return res
 
     def get_area(self, cache=False):
