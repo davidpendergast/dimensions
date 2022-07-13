@@ -218,11 +218,13 @@ class InstructionsMenu(CutSceneMenu):
 class CreditsMenu(CutSceneMenu):
 
     def __init__(self, next_menu):
-        pages = [tr.TextRenderer("Made by Ghast\nghastly.itch.io\n\n"
+        pages = [tr.TextRenderer("Art, Code, and Concept by Ghast\nghastly.itch.io\n\n"
                                  "Music: fakemusicgenerator.com / cgMusic\n"
                                  "Font: Alagard by Hewett Tsoi\n"
                                  "Sound effects: sfxr.me\n\n"
-                                 "Made using pygame and pygame-wasm", "M", alignment=0, y_kerning=2)]
+                                 "Story: OpenAI Playground\n"
+                                 "(from many prompts,\nedited & arranged by me)\n\n"
+                                 "Built using python, pygame & pygame-wasm", "M", alignment=0, y_kerning=2)]
 
         super().__init__(pages, next_menu)
 
@@ -237,25 +239,26 @@ _LORE_TEXT = [
     "to throwing themselves at the knight, hoping to\n"
     "overwhelm him. But the knight was ready.",
 
-    "The brave knight had been defending his castle from\n"
-    "interdimensional aliens for years. He had seen them\n"
-    "come in all shapes and sizes, but he had never seen\n"
-    "anything like the creatures that were attacking his\n"
-    "castle now.",
+    "The brave knight had been defending his castle\n"
+    "from interdimensional aliens for years. He had\n"
+    "seen them come in all shapes and sizes, but he\n"
+    "had never seen anything like the creatures that\n"
+    "were attacking his castle now.",
 
-    "They were huge, with tentacles that seemed to be made\n"
-    "of metal. They were also incredibly fast, and it was\n"
-    "all the knight could do to keep up with them.",
+    "They were huge, with tentacles that seemed to\n"
+    "be made of metal. They were also incredibly fast,\n"
+    "and it was all the knight could do to keep up\n"
+    "with them.",
 
     "The knight drank the first potion and his armor\n"
     "turned blue. He used his new camouflage to sneak up\n"
     "on the aliens and ambush them. He immediately felt\n"
     "more confident and brave. ",
 
-    "The aliens had been attacking earth for weeks, and\n"
-    "it seemed like they were never going to stop.\n"
-    "The knight had been fighting them off as best as he\n"
-    "could, but he was getting tired.",
+    "The aliens had been attacking earth for weeks,\n"
+    "and it seemed like they were never going to stop.\n"
+    "The knight had been fighting them off as best as\n"
+    "he could, but he was getting tired.",
 
     ("The knight was getting tired, but he knew he had\n"
     "to keep going. He had to find a way to defeat this\n"
@@ -286,13 +289,16 @@ _LORE_TEXT = [
     "and the knight was running out of ideas.",
 
     "He knew that he needed to find a way to defeat the\n"
-    "aliens once and for all, or the world would be lost.",
+    "aliens once and for all, or the world would be lost.\n\n"
+    "The knight rode into the basin, prepared for battle.\n"
+    "He had been warned about the two blue aliens that\n"
+    "resided there, and was ready to take them on.",
 
     "The knight spent days locked in his laboratory,\n"
     "trying to come up with a new plan.\n\n"
-    "Finally, he had a breakthrough. He created a new box,\n"
-    "one that was so powerful it could kill an alien by\n"
-    "crushing it against a wall.",
+    "Finally, he had a breakthrough. He created a new\n"
+    "box, one that was so powerful it could kill an\n"
+    "alien by crushing it against a wall.",
 
     ("As he rounded a corner, he saw a group of aliens\n"
     "clustered together. They were laughing and joking,\n"
@@ -331,9 +337,35 @@ _LORE_TEXT = [
 GAME_OVER_LORE = (
     "The aliens were no match for the knight's skill\n"
     "and strength, and soon they were retreating back\n"
-    "to their ship. The knight triumphantly rode back\n"
-    "to the castle, where the people cheered for him\n"
-    "and hailed him as a hero.",)
+    "to their ship.\n\n"
+    "The knight triumphantly rode back to the castle,\n"
+    "where the people cheered for him and hailed him\n"
+    "as a hero.")
+
+
+SNEK_LORE = (
+    "The knight was on his horse, trotting through\n"
+    "the forest when he saw a large yellow python\n"
+    "blocking his path. The knight stopped and\n"
+    "asked the python what it wanted.",
+
+    "The python told the knight that it wanted to\n"
+    "play a game. If the knight could answer its\n"
+    "riddle, the python would let him pass.\n"
+    "If the knight couldn't answer the riddle,\n"
+    "the python would eat him. ",
+
+    "The knight agreed to the game and the python\n"
+    "asked its riddle.\n"
+    
+    "\"What will this expression evaluate to?\"\n\n"
+    "{True: 'yes', 1: 'no', 1.0: 'maybe'}\n\n",
+
+    "The knight did some calculations in his head\n"
+    "for a moment and then answered. The python\n"
+    "was pleased with the answer and moved aside,\n"
+    "letting the knight pass."
+)
 
 
 def get_lore_text(level_idx):
@@ -350,6 +382,20 @@ class LoreMenu(CutSceneMenu):
             text = (text, )
         color = colors.get_color(colors.rand_color_id(include_white=True))
         pages = [tr.TextRenderer(t, size="M", color=color, y_kerning=4) for t in text]
+        super().__init__(pages, next_menu)
+
+
+class YouWinMenu(CutSceneMenu):
+
+    def __init__(self, steps, next_menu):
+        page_texts = [
+            f"You Win!\nTotal Steps: {steps}",
+            "Made by Ghast\n\n@Ghast_NEOH\nghastly.itch.io",
+            "Entry to:\n\nPygame Community\nSummer Jam 2022\n\n(8-day duration)",
+            "Thanks for playing :)"
+        ]
+        pages = [tr.TextRenderer(t, size="L", color=colors.get_color(colors.rand_color_id()),
+                                 y_kerning=4, alignment=0) for t in page_texts]
         super().__init__(pages, next_menu)
 
 
@@ -685,7 +731,9 @@ class PlayingLevelMenu(Menu):
 
                 next_idx = idx + 1
                 if next_idx >= loader.num_levels():
-                    self.manager.set_menu(LoreMenu(GAME_OVER_LORE, MainMenu()), transition=lvl_cleared_text)
+                    total_steps = loader.get_total_steps()
+                    win_menu = YouWinMenu(total_steps, next_menu=MainMenu())
+                    self.manager.set_menu(LoreMenu(GAME_OVER_LORE, win_menu), transition=lvl_cleared_text)
                     sounds.play(sounds.GAME_WON)
                 else:
                     next_level_state = loader.get_level_by_idx(next_idx)

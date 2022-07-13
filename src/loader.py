@@ -83,6 +83,14 @@ def set_completed(name, steps):
         pd.set_data(LEVEL_COMPLETIONS_KEY, completed_levels)
 
 
+def get_total_steps() -> int:
+    completed_levels = pd.get_data(LEVEL_COMPLETIONS_KEY, coercer=utils.get_dict_type_coercer(str, int), or_else={})
+    res = 0
+    for name in completed_levels:
+        res += int(completed_levels[name])
+    return res
+
+
 def make_demo_state():
     state = level.State("Demo")
 
