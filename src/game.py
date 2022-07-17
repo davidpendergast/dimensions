@@ -9,7 +9,7 @@ import src.colors as colors
 import src.menus as menus
 import src.rendering as rendering
 import src.loader as loader
-import src.persistentdata as pd
+import src.userdata as userdata
 
 import src.sprites as sprites
 import src.sounds as sounds
@@ -44,7 +44,11 @@ class Game:
         sounds.play_song(sounds.MAIN_SONG)
         loader.load_levels()
 
-        pd.load_data_from_disk()
+        userdata.initialize(configs.DATA_KEY, configs.get_save_mode(),
+                            appname=configs.NAME_OF_GAME,
+                            appauthor=configs.AUTHOR,
+                            version=configs.VERSION)
+        userdata.load_data_from_disk()
 
         self.menu_manager = menus.MenuManager(menus.MainMenu())
 
@@ -70,6 +74,13 @@ class Game:
 
             if inputs.was_pressed(configs.MUSIC_TOGGLE):
                 sounds.set_songs_muted(not configs.SONG_MUTED)
+
+            if inputs.was_pressed(pygame.K_r):
+                shift_held = pygame.key.get_mods() & pygame.KMOD_SHIFT
+                ctrl_held = pygame.key.get_mods() & pygame.KMOD_CTRL
+                if shift_held and ctrl_held:
+                    print("INFO: resetting save data ([Ctrl + Shift + R] was pressed)")
+                    userdata.reset_data(hard=True)
 
             self.menu_manager.update(dt)
 

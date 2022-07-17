@@ -11,3 +11,4 @@ build/*
 *.mp4
 assets/wavs/*
 webzone/*
+alienknightmare_data.json

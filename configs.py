@@ -2,7 +2,13 @@ import os.path
 import platform
 import pygame
 
+
+NAME_OF_GAME = "Alien Knightmare"
+AUTHOR = "Ghast"
 VERSION = "1.0.0"
+
+DATA_KEY = "alienknightmare_data"
+
 WEB_MODE = platform.system().lower() == "emscripten"
 
 COLORBLIND_MODE = True
@@ -29,9 +35,24 @@ UNDO = (pygame.K_z, pygame.K_BACKSPACE)
 RESET = (pygame.K_r, pygame.K_RETURN)
 PAUSE = (pygame.K_ESCAPE,)
 
+
 # debug stuff
-IS_DEBUG = not WEB_MODE and os.path.exists(".gitignore") and False
+IS_DEV = not WEB_MODE and os.path.exists(".gitignore") and False
+IS_DEBUG = IS_DEV and False
+
 DEBUG_FAKE_LEVELS = False
 DEBUG_NO_CONTINUE = False
 DEBUG_ALL_UNLOCKED = True
 DEBUG_OVERWRITE_WHILE_SAVING = True
+
+
+def get_save_mode():
+    import src.userdata as pd
+
+    if IS_DEBUG:
+        return pd.SAVE_AND_LOAD_DISABLED
+    elif IS_DEV:
+        return pd.CURRENT_WORKING_DIR
+    else:
+        return pd.BEST
+
