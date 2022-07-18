@@ -13,7 +13,7 @@ import src.inputs as inputs
 import src.colors as colors
 import src.sounds as sounds
 import src.utils as utils
-import src.persistentdata as pd
+import src.userdata as userdata
 
 _UID_COUNTER = 1
 
@@ -586,7 +586,7 @@ class State:
     def save_to_json(self, filepath: str, allow_overwrite=False) -> typing.Optional[dict]:
         try:
             blob = {
-                pd.VERSION_KEY: configs.VERSION,
+                "_vers": configs.VERSION,
                 NAME_TAG: self.name,
                 DATA_TAG: []
             }
@@ -614,7 +614,7 @@ class State:
                     json.dump(blob, f)
 
             return blob
-        except:
+        except Exception:
             print("ERROR: failed to save level")
             traceback.print_exc()
             return None

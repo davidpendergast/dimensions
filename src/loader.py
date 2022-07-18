@@ -1,13 +1,12 @@
 import os
 import json
-import random
 import string
 
 import configs
 import src.level as level
 import src.colors as colors
 import src.utils as utils
-import src.persistentdata as pd
+import src.userdata as userdata
 
 
 _ORDERED_LEVELS_FROM_DISK = []
@@ -75,7 +74,8 @@ def all_levels():
 
 
 def is_completed(name) -> int:
-    completed_levels = pd.get_data(LEVEL_COMPLETIONS_KEY, coercer=utils.get_dict_type_coercer(str, int), or_else={})
+    to_str_int_dict = utils.get_dict_type_coercer(str, int)
+    completed_levels = userdata.get_data(LEVEL_COMPLETIONS_KEY, coercer=to_str_int_dict, or_else={})
     if name in completed_levels:
         return completed_levels[name]
     else:
@@ -83,10 +83,11 @@ def is_completed(name) -> int:
 
 
 def set_completed(name, steps):
-    completed_levels = pd.get_data(LEVEL_COMPLETIONS_KEY, coercer=utils.get_dict_type_coercer(str, int), or_else={})
+    to_str_int_dict = utils.get_dict_type_coercer(str, int)
+    completed_levels = userdata.get_data(LEVEL_COMPLETIONS_KEY, coercer=to_str_int_dict, or_else={})
     if name not in completed_levels or completed_levels[name] > steps:
         completed_levels[name] = steps
-        pd.set_data(LEVEL_COMPLETIONS_KEY, completed_levels)
+        userdata.set_data(LEVEL_COMPLETIONS_KEY, completed_levels)
 
 
 def is_every_level_complete():
@@ -97,7 +98,8 @@ def is_every_level_complete():
 
 
 def get_total_steps() -> int:
-    completed_levels = pd.get_data(LEVEL_COMPLETIONS_KEY, coercer=utils.get_dict_type_coercer(str, int), or_else={})
+    to_str_int_dict = utils.get_dict_type_coercer(str, int)
+    completed_levels = userdata.get_data(LEVEL_COMPLETIONS_KEY, coercer=to_str_int_dict, or_else={})
     res = 0
     for name in completed_levels:
         res += int(completed_levels[name])
