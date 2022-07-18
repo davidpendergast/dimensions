@@ -48,7 +48,6 @@ DEBUG_OVERWRITE_WHILE_SAVING = True
 
 def get_save_mode():
     import src.userdata as pd
-
     if IS_DEBUG:
         return pd.SAVE_AND_LOAD_DISABLED
     elif IS_DEV:

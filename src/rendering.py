@@ -1,5 +1,4 @@
 import typing
-import random
 import math
 
 import pygame

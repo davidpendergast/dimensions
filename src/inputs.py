@@ -1,6 +1,5 @@
 import typing
 
-import pygame
 import src.utils as utils
 
 CUR_TIME = 0

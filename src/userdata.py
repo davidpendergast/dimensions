@@ -3,19 +3,20 @@ import traceback
 import typing
 import string
 
-import appdirs
 import platform
 import json
 
 import src.utils as utils
 
 
-_RUNNING_IN_WEB_MODE = False
+_ACTUALLY_RUNNING_IN_WEB_MODE = False
 if platform.system().lower() == "emscripten":
     # note that this stuff only resolves when running in a web context
     if __WASM__ and __EMSCRIPTEN__ and __EMSCRIPTEN__.is_browser:
         from __EMSCRIPTEN__ import window, document
-    _RUNNING_IN_WEB_MODE = True
+    _ACTUALLY_RUNNING_IN_WEB_MODE = True
+else:
+    import appdirs  # doesn't seem to resolve in web-mode
 
 
 # Storage Modes
@@ -56,12 +57,12 @@ def initialize(keyname: str, mode: str = BEST, appname=None, appauthor=None, ver
 
 def _set_mode(mode):
     if mode == BEST:
-        if _RUNNING_IN_WEB_MODE:
+        if _ACTUALLY_RUNNING_IN_WEB_MODE:
             mode = LOCAL_WEB_STORAGE
         else:
             mode = USER_DATA_DIR
 
-    if mode == LOCAL_WEB_STORAGE and not _RUNNING_IN_WEB_MODE:
+    if mode == LOCAL_WEB_STORAGE and not _ACTUALLY_RUNNING_IN_WEB_MODE:
         raise ValueError(f"Cannot use saving mode \"{mode}\" if not running in web mode.")
     elif mode in (LOCAL_WEB_STORAGE, CURRENT_WORKING_DIR, USER_DATA_DIR, SAVE_AND_LOAD_DISABLED):
         global _MODE

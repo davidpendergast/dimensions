@@ -75,12 +75,13 @@ class Game:
             if inputs.was_pressed(configs.MUSIC_TOGGLE):
                 sounds.set_songs_muted(not configs.SONG_MUTED)
 
-            if inputs.was_pressed(pygame.K_r):
+            if inputs.was_pressed(pygame.K_r) and configs.IS_DEV:
                 shift_held = pygame.key.get_mods() & pygame.KMOD_SHIFT
                 ctrl_held = pygame.key.get_mods() & pygame.KMOD_CTRL
                 if shift_held and ctrl_held:
                     print("INFO: resetting save data ([Ctrl + Shift + R] was pressed)")
                     userdata.reset_data(hard=True)
+                    sounds.play(sounds.LEVEL_QUIT)
 
             self.menu_manager.update(dt)
 

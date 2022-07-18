@@ -13,7 +13,6 @@ import src.inputs as inputs
 import src.colors as colors
 import src.sounds as sounds
 import src.utils as utils
-import src.userdata as userdata
 
 _UID_COUNTER = 1
 
