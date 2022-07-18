@@ -159,7 +159,7 @@ def save_data_to_disk(force=False) -> bool:
                     print(f"INFO: {action_str} {local_filepath} with data: {_IN_MEMORY}")
 
         except Exception:
-            print("ERROR: failed to save persistent data")
+            print("ERROR: failed to save user data")
             traceback.print_exc()
             return False
 
@@ -176,7 +176,7 @@ def reset_data(hard=False):
     if hard:
         try:
             if _MODE == SAVE_AND_LOAD_DISABLED:
-                print("INFO: not resetting on-disk data because persistent data is disabled.")
+                print("INFO: not resetting on-disk data because user data is disabled.")
                 pass
             elif _MODE == LOCAL_WEB_STORAGE:
                 window.localStorage.removeItem(_KEY)
@@ -207,7 +207,7 @@ def get_data(key, coercer=None, or_else=None):
             try:
                 return coercer(val)
             except ValueError:
-                print(f"ERROR: failed to coerce persistent data: {key}={val} (using {or_else} instead)")
+                print(f"ERROR: failed to coerce user data: {key}={val} (using {or_else} instead)")
                 traceback.print_exc()
 
     return or_else
