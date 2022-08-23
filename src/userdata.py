@@ -8,13 +8,18 @@ import json
 
 
 _ACTUALLY_RUNNING_IN_WEB_MODE = False
+_HAS_APPDIRS = False
 if platform.system().lower() == "emscripten":
     # note that this stuff only resolves when running in a web context
     if __WASM__ and __EMSCRIPTEN__ and __EMSCRIPTEN__.is_browser:
         from __EMSCRIPTEN__ import window, document
     _ACTUALLY_RUNNING_IN_WEB_MODE = True
 else:
-    import appdirs  # doesn't seem to resolve in web-mode
+    try:
+        import appdirs  # doesn't seem to resolve in web-mode
+        _HAS_APPDIRS = True
+    except ImportError:
+        print("WARN: appdirs module couldn't be imported. userdata.USER_DATA_DIR mode will not be available.")
 
 
 # Storage Modes
@@ -74,7 +79,7 @@ def _set_mode(mode):
         if _ACTUALLY_RUNNING_IN_WEB_MODE:
             mode = LOCAL_WEB_STORAGE
         else:
-            mode = USER_DATA_DIR
+            mode = USER_DATA_DIR if _HAS_APPDIRS else CURRENT_WORKING_DIR
 
     if mode == LOCAL_WEB_STORAGE and not _ACTUALLY_RUNNING_IN_WEB_MODE:
         raise ValueError(f"Cannot use saving mode \"{mode}\" if not running in web mode.")
