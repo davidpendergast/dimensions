@@ -6,8 +6,6 @@ import string
 import platform
 import json
 
-import src.utils as utils
-
 
 _ACTUALLY_RUNNING_IN_WEB_MODE = False
 if platform.system().lower() == "emscripten":
@@ -43,6 +41,22 @@ _DIRTY = False
 
 
 def initialize(keyname: str, mode: str = BEST, appname=None, appauthor=None, version=None):
+    """Initializes the module.
+
+    Args:
+        keyname (str): An identifier for this blob of data. In web mode, this is used as the key in the browser's
+            storage area. In desktop mode, it's used for the name of the json file. This key should be consistent
+            across different runs of the program.
+        mode (str): Where to save/load the data. Must be one of the following:
+            userdata.CURRENT_WORKING_DIR: Store the data at ./keyname.json
+            userdata.USER_DATA_DIR: Store data in a json file at an appropriate location for this OS.
+            userdata.LOCAL_WEB_STORAGE: Store data in the browser (will only work in web mode).
+            userdata.SAVE_AND_LOAD_DISABLED: Do not save or load any data.
+            userdata.BEST (default): Choose the best option automatically.
+        appname (str): Only used in USER_DATA_DIR mode. May affect where the data gets saved on disk.
+        appauthor (str): Only used in USER_DATA_DIR mode. May affect where the data gets saved on disk.
+        version (str): An optional version string that will be included in the save file if given.
+    """
     if keyname is None and mode != SAVE_AND_LOAD_DISABLED:
         raise ValueError("keyname cannot be None")
 
@@ -86,6 +100,15 @@ def _clean_for_fp(text, replacewith=""):
         return "".join((t if t in _VALID_CHARS_FOR_FP else replacewith) for t in text)
 
 
+def _copy_via_json_serialization(val):
+    try:
+        val_as_json_str = json.dumps(val)
+        return json.loads(val_as_json_str)
+    except Exception as e:
+        print(f"ERROR: val isn't json-compatible: {val} (type is {type(val).__name__})")
+        raise e
+
+
 def _get_local_filepath(mkdirs_if_necessary=True) -> str:
     filename = f"{_KEY}.json"
     if _MODE == USER_DATA_DIR:
@@ -103,6 +126,7 @@ def _get_local_filepath(mkdirs_if_necessary=True) -> str:
 
 
 def load_data_from_disk() -> bool:
+    """Loads the data from disk into program memory."""
     _check_initialized()
 
     global _IN_MEMORY, _DIRTY
@@ -137,6 +161,11 @@ def load_data_from_disk() -> bool:
 
 
 def save_data_to_disk(force=False) -> bool:
+    """Saves the data from program memory to disk, if new changes are present.
+
+        Args:
+            force (bool): If True, will update the data on disk even if no new changes are present.
+    """
     _check_initialized()
 
     global _DIRTY
@@ -168,6 +197,15 @@ def save_data_to_disk(force=False) -> bool:
 
 
 def reset_data(hard=False):
+    """Erases the user's data in program memory.
+
+        Args:
+            hard (bool): If True, will immediately delete the user's data on-disk or in the browser as well.
+
+                If False, this function will leave the data on-disk intact (wiping the data in program memory only).
+                Note that saving anything new to disk after a soft reset will overwrite the data that was
+                there previously though, effectively wiping it. So proceed with caution if calling this.
+    """
     _check_initialized()
 
     global _DIRTY
@@ -198,27 +236,47 @@ def reset_data(hard=False):
     return True
 
 
-def get_data(key, coercer=None, or_else=None):
+def get_data(key: str, coercer=lambda x: x, or_else=None):
+    """Fetches a piece of data from program memory using its key.
+
+        Args:
+            key (str): the key for the data.
+            coercer: an optional function that converts or cleans the data before it's returned. For example,
+                if you're expecting the data to be an integer, you may want to pass `coercer=int` to guarantee the
+                return value is an int. This way callers can prevent themselves from receiving corrupted data to
+                some degree.
+            or_else: a value to return if the data isn't present or caused `coercer` to throw an error.
+    """
     _check_initialized()
 
     if key in _IN_MEMORY:
         val = _IN_MEMORY[key]
-        val = utils.copy_json(val)
+        val = _copy_via_json_serialization(val)
         if coercer is not None:
             try:
                 return coercer(val)
-            except ValueError:
+            except Exception:
                 print(f"ERROR: failed to coerce user data: {key}={val} (using {or_else} instead)")
                 traceback.print_exc()
+                return or_else
+        else:
+            return val
 
     return or_else
 
 
-def set_data(key, val, and_save_to_disk=True):
+def set_data(key: str, val, and_save_to_disk=True):
+    """Creates or updates a key-value pair of data in program memory.
+
+        Args:
+            key (str): the key for the data.
+            val: the data to store. Must be json-compatible.
+            and_save_to_disk (bool): Whether to save this change to disk immediately.
+    """
     _check_initialized()
 
     global _IN_MEMORY, _DIRTY
-    val = utils.copy_json(val)
+    val = _copy_via_json_serialization(val)
     if key not in _IN_MEMORY or _IN_MEMORY[key] != val:
         _DIRTY = True
     _IN_MEMORY[key] = val
